@@ -178,11 +178,13 @@ async function fetchCampaigns(customerId, dateRange) {
         segments.date
     FROM campaign
     WHERE segments.date BETWEEN ${dateRange}
-    AND metrics.cost_micros > 0 OR metrics.clicks > 1
+    AND metrics.cost_micros > 0
     `;
     
     const rows = await executeGAQL(customerId, query);
-    return rows.map((r) => ({
+    return rows
+        .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+        .map((r) => ({
         id: String(r.campaign.id),
         name: r.campaign.name,
         status: r.campaign.status,
@@ -218,11 +220,13 @@ async function fetchAdGroups(customerId, dateRange) {
         segments.date
     FROM ad_group
     WHERE segments.date BETWEEN ${dateRange}
-    AND metrics.cost_micros > 0 OR metrics.clicks > 1
+    AND metrics.cost_micros > 0
     `;
     
     const rows = await executeGAQL(customerId, query);
-    return rows.map((r) => ({
+    return rows
+        .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+        .map((r) => ({
         id: String(r.adGroup.id),
         name: r.adGroup.name,
         status: r.adGroup.status,
@@ -259,11 +263,13 @@ async function fetchKeywords(customerId, dateRange) {
         segments.date
     FROM keyword_view
     WHERE segments.date BETWEEN ${dateRange}
-    AND metrics.cost_micros > 0 OR metrics.clicks > 1
+    AND metrics.cost_micros > 0
     `;
     
     const rows = await executeGAQL(customerId, query);
-    return rows.map((r) => ({
+    return rows
+        .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+        .map((r) => ({
         id: String(r.adGroupCriterion.criterionId),
         text: r.adGroupCriterion.keyword?.text,
         matchType: r.adGroupCriterion.keyword?.matchType,
@@ -307,11 +313,13 @@ async function fetchAds(customerId, dateRange) {
         segments.date
     FROM ad_group_ad
     WHERE segments.date BETWEEN ${dateRange}
-    AND metrics.cost_micros > 0 OR metrics.clicks > 1
+    AND metrics.cost_micros > 0
     `;
     
     const rows = await executeGAQL(customerId, query);
-    return rows.map((r) => ({
+    return rows
+        .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+        .map((r) => ({
         id: String(r.adGroupAd.ad.id),
         headlines: r.adGroupAd.ad.responsiveSearchAd?.headlines?.map(h => h.text).join(' | '),
         descriptions: r.adGroupAd.ad.responsiveSearchAd?.descriptions?.map(d => d.text).join(' | '),

@@ -178,7 +178,7 @@ async function fetchCampaigns(customerId, dateRange) {
         segments.date
     FROM campaign
     WHERE segments.date BETWEEN ${dateRange}
-    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+    AND metrics.cost_micros > 0 OR metrics.clicks > 1
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -218,7 +218,7 @@ async function fetchAdGroups(customerId, dateRange) {
         segments.date
     FROM ad_group
     WHERE segments.date BETWEEN ${dateRange}
-    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+    AND metrics.cost_micros > 0 OR metrics.clicks > 1
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -259,7 +259,7 @@ async function fetchKeywords(customerId, dateRange) {
         segments.date
     FROM keyword_view
     WHERE segments.date BETWEEN ${dateRange}
-    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+    AND metrics.cost_micros > 0 OR metrics.clicks > 1
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -307,7 +307,7 @@ async function fetchAds(customerId, dateRange) {
         segments.date
     FROM ad_group_ad
     WHERE segments.date BETWEEN ${dateRange}
-    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+    AND metrics.cost_micros > 0 OR metrics.clicks > 1
     `;
     
     const rows = await executeGAQL(customerId, query);

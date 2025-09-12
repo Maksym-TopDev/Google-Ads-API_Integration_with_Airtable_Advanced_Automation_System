@@ -154,7 +154,7 @@ class MasterDatePullService {
             segments.date
         FROM campaign
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+        AND metrics.cost_micros > 0 OR metrics.clicks > 1
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -193,7 +193,7 @@ class MasterDatePullService {
             segments.date
         FROM ad_group
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+        AND metrics.cost_micros > 0 OR metrics.clicks > 1
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -233,7 +233,7 @@ class MasterDatePullService {
             segments.date
         FROM keyword_view
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+        AND metrics.cost_micros > 0 OR metrics.clicks > 1
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -280,7 +280,7 @@ class MasterDatePullService {
             segments.date
         FROM ad_group_ad
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
+        AND metrics.cost_micros > 0 OR metrics.clicks > 1
         `;
         
         const rows = await this.executeGAQL(customerId, query);

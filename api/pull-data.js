@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { start, end, token } = req.query || {};
+    const { start, end, token, recordId } = req.query || {};
 
     const expected = process.env.API_SHARED_SECRET;
     if (expected && token !== expected) {
@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
     }
 
     const service = new MasterDatePullService();
-    const result = await service.pullWithDateRange(start, end);
+    const result = await service.pullWithDateRange(start, end, recordId);
     res.status(200).json({ success: true, ...result });
   } catch (e) {
     const message = e?.response?.data || e?.message || 'Unknown error';

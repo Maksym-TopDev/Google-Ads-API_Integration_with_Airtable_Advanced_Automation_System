@@ -92,15 +92,23 @@ class MasterDatePullService {
         return `'${formatDate(startDate)}' AND '${formatDate(endDate)}'`;
     }
 
-    async updateStatus(status, message, recordsUpdated = 0) {
+    async updateStatus(status, message, recordsUpdated = 0, recordId = null) {
         try {
-            const records = await this.airtable('Set Date').select({
-                maxRecords: 1
-            }).all();
+            let targetRecordId = recordId;
             
-            if (records.length > 0) {
+            // If no recordId provided, get the first record (backward compatibility)
+            if (!targetRecordId) {
+                const records = await this.airtable('Set Date').select({
+                    maxRecords: 1
+                }).all();
+                if (records.length > 0) {
+                    targetRecordId = records[0].id;
+                }
+            }
+            
+            if (targetRecordId) {
                 await this.airtable('Set Date').update([{
-                    id: records[0].id,
+                    id: targetRecordId,
                     fields: {
                         'Status': status,
                         'Last Pull Status': message,
@@ -491,12 +499,12 @@ class MasterDatePullService {
         return out;
     }
 
-    async pullAllData() {
+    async pullAllData(recordId = null) {
         try {
             console.log('Starting master date pull...');
             
             // Update status to "Pulling"
-            await this.updateStatus('Pulling', 'Starting data pull...', 0);
+            await this.updateStatus('Pulling', 'Starting data pull...', 0, recordId);
             
             // Get master date range
             const dateRange = await this.getMasterDateRange();
@@ -520,7 +528,7 @@ class MasterDatePullService {
             const totalRecords = recordCounts.campaigns + recordCounts.adGroups + recordCounts.keywords + recordCounts.ads;
             
             // Update status to success
-            await this.updateStatus('Success', `Successfully pulled ${totalRecords} records`, totalRecords);
+            await this.updateStatus('Success', `Successfully pulled ${totalRecords} records`, totalRecords, recordId);
             
             console.log(`✅ Successfully pulled data:`);
             console.log(`   - ${recordCounts.campaigns} campaigns`);
@@ -537,20 +545,20 @@ class MasterDatePullService {
             
         } catch (error) {
             console.error('❌ Error during data pull:', error);
-            await this.updateStatus('Error', `Error: ${error.message}`, 0);
+            await this.updateStatus('Error', `Error: ${error.message}`, 0, recordId);
             throw error;
         }
     }
 
     // New: pull using explicit start/end dates (strings YYYY-MM-DD)
-    async pullWithDateRange(startDateStr, endDateStr) {
+    async pullWithDateRange(startDateStr, endDateStr, recordId = null) {
         try {
             if (!startDateStr || !endDateStr) {
                 throw new Error('start and end dates are required (YYYY-MM-DD)');
             }
 
             console.log('Starting master date pull with explicit range...');
-            await this.updateStatus('Pulling', `Pulling ${startDateStr} to ${endDateStr}...`, 0);
+            await this.updateStatus('Pulling', `Pulling ${startDateStr} to ${endDateStr}...`, 0, recordId);
 
             const dateRange = `'${startDateStr}' AND '${endDateStr}'`;
             console.log(`Using date range: ${dateRange}`);
@@ -566,7 +574,7 @@ class MasterDatePullService {
             const recordCounts = await this.createRecords(campaigns, adGroups, keywords, ads);
             const totalRecords = recordCounts.campaigns + recordCounts.adGroups + recordCounts.keywords + recordCounts.ads;
 
-            await this.updateStatus('Success', `Successfully pulled ${totalRecords} records`, totalRecords);
+            await this.updateStatus('Success', `Successfully pulled ${totalRecords} records`, totalRecords, recordId);
 
             return {
                 success: true,
@@ -575,7 +583,7 @@ class MasterDatePullService {
             };
         } catch (error) {
             console.error('❌ Error during ranged data pull:', error);
-            await this.updateStatus('Error', `Error: ${error.message}`, 0);
+            await this.updateStatus('Error', `Error: ${error.message}`, 0, recordId);
             throw error;
         }
     }

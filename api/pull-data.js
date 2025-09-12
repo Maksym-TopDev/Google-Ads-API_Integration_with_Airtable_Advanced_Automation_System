@@ -12,16 +12,9 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { start, end, token, recordId } = req.query || {};
+    const { start, end, recordId } = req.query || {};
     
-    console.log('API Request:', { start, end, recordId, hasToken: !!token });
-
-    const expected = process.env.API_SHARED_SECRET;
-    if (expected && token !== expected) {
-      console.log('Unauthorized request - token mismatch');
-      res.status(401).json({ success: false, error: 'Unauthorized - invalid token' });
-      return;
-    }
+    console.log('API Request:', { start, end, recordId });
 
     // Handle MISSING values from Airtable formula
     if (!start || !end || start === 'MISSING' || end === 'MISSING') {

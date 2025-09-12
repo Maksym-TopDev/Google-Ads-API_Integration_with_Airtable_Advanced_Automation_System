@@ -13,27 +13,44 @@ module.exports = async (req, res) => {
 
   try {
     const { start, end, token, recordId } = req.query || {};
+    
+    console.log('API Request:', { start, end, recordId, hasToken: !!token });
 
     const expected = process.env.API_SHARED_SECRET;
     if (expected && token !== expected) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
+      console.log('Unauthorized request - token mismatch');
+      res.status(401).json({ success: false, error: 'Unauthorized - invalid token' });
       return;
     }
 
-    if (!start || !end) {
-      res.status(400).json({ success: false, error: 'Missing start or end (YYYY-MM-DD)' });
+    // Handle MISSING values from Airtable formula
+    if (!start || !end || start === 'MISSING' || end === 'MISSING') {
+      res.status(400).json({ 
+        success: false, 
+        error: 'Please set both Master Start Date and Master End Date in your Airtable record' 
+      });
       return;
     }
+    
     if (!isValidDateStr(start) || !isValidDateStr(end)) {
-      res.status(400).json({ success: false, error: 'Invalid date format, expected YYYY-MM-DD' });
+      res.status(400).json({ 
+        success: false, 
+        error: 'Invalid date format. Please ensure dates are in YYYY-MM-DD format' 
+      });
       return;
     }
 
+    console.log(`Starting data pull for ${start} to ${end}, recordId: ${recordId}`);
+    
     const service = new MasterDatePullService();
     const result = await service.pullWithDateRange(start, end, recordId);
+    
+    console.log('Data pull completed successfully:', result);
     res.status(200).json({ success: true, ...result });
+    
   } catch (e) {
     const message = e?.response?.data || e?.message || 'Unknown error';
+    console.error('API Error:', e);
     res.status(500).json({ success: false, error: message });
   }
 };

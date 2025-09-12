@@ -1,0 +1,19 @@
+{
+  "name": "google-ads-automation",
+  "version": "0.1.0",
+  "description": "MCC to Airtable on-demand pull Phase 1",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo No tests",
+    "fetch": "node src/fetch.js",
+    "master-pull": "node src/master-date-pull.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.2",
+    "airtable": "^0.12.2"
+  }
+}

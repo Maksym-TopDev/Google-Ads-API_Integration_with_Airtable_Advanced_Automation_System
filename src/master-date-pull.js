@@ -541,6 +541,44 @@ class MasterDatePullService {
             throw error;
         }
     }
+
+    // New: pull using explicit start/end dates (strings YYYY-MM-DD)
+    async pullWithDateRange(startDateStr, endDateStr) {
+        try {
+            if (!startDateStr || !endDateStr) {
+                throw new Error('start and end dates are required (YYYY-MM-DD)');
+            }
+
+            console.log('Starting master date pull with explicit range...');
+            await this.updateStatus('Pulling', `Pulling ${startDateStr} to ${endDateStr}...`, 0);
+
+            const dateRange = `'${startDateStr}' AND '${endDateStr}'`;
+            console.log(`Using date range: ${dateRange}`);
+
+            const customerId = (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/-/g, '');
+            if (!customerId) {
+                throw new Error('GOOGLE_ADS_CUSTOMER_ID not set in environment');
+            }
+
+            await this.clearExistingData();
+
+            const { campaigns, adGroups, keywords, ads } = await this.fetchAllData(customerId, dateRange);
+            const recordCounts = await this.createRecords(campaigns, adGroups, keywords, ads);
+            const totalRecords = recordCounts.campaigns + recordCounts.adGroups + recordCounts.keywords + recordCounts.ads;
+
+            await this.updateStatus('Success', `Successfully pulled ${totalRecords} records`, totalRecords);
+
+            return {
+                success: true,
+                totalRecords,
+                breakdown: recordCounts,
+            };
+        } catch (error) {
+            console.error('❌ Error during ranged data pull:', error);
+            await this.updateStatus('Error', `Error: ${error.message}`, 0);
+            throw error;
+        }
+    }
 }
 
 // Main execution

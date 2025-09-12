@@ -189,12 +189,19 @@ Create the following tables in your Airtable base:
 
 ### Running the Application
 
-1. **Manual data pull (command line):**
+1. **Start lightweight HTTP server (for Airtable Button URL):**
+```bash
+npm run start
+```
+
+Endpoint: `GET /api/pull-data?start=YYYY-MM-DD&end=YYYY-MM-DD[&token=YOUR_SECRET]`
+
+2. **Manual data pull (command line):**
 ```bash
 npm run master-pull
 ```
 
-2. **Test the setup:**
+3. **Test the setup:**
 ```bash
 npm test
 ```

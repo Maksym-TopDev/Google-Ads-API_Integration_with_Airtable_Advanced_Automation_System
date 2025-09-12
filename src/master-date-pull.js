@@ -154,6 +154,7 @@ class MasterDatePullService {
             segments.date
         FROM campaign
         WHERE segments.date BETWEEN ${dateRange}
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -167,7 +168,7 @@ class MasterDatePullService {
             impressions: r.metrics.impressions,
             clicks: r.metrics.clicks,
             ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros,
+            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
             conversions: r.metrics.conversions,
             conversionRate: r.metrics.conversionsFromInteractionsRate,
             roas: r.metrics.conversionsValue,
@@ -192,6 +193,7 @@ class MasterDatePullService {
             segments.date
         FROM ad_group
         WHERE segments.date BETWEEN ${dateRange}
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -204,7 +206,7 @@ class MasterDatePullService {
             impressions: r.metrics.impressions,
             clicks: r.metrics.clicks,
             ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros,
+            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
             conversions: r.metrics.conversions,
             conversionRate: r.metrics.conversionsFromInteractionsRate,
             roas: r.metrics.conversionsValue,
@@ -231,6 +233,7 @@ class MasterDatePullService {
             segments.date
         FROM keyword_view
         WHERE segments.date BETWEEN ${dateRange}
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -247,7 +250,7 @@ class MasterDatePullService {
             impressions: r.metrics.impressions,
             clicks: r.metrics.clicks,
             ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros,
+            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
             conversions: r.metrics.conversions,
             conversionRate: r.metrics.conversionsFromInteractionsRate,
             roas: r.metrics.conversionsValue,
@@ -277,6 +280,7 @@ class MasterDatePullService {
             segments.date
         FROM ad_group_ad
         WHERE segments.date BETWEEN ${dateRange}
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -294,7 +298,7 @@ class MasterDatePullService {
             impressions: r.metrics.impressions,
             clicks: r.metrics.clicks,
             ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros,
+            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
             conversions: r.metrics.conversions,
             conversionRate: r.metrics.conversionsFromInteractionsRate,
             roas: r.metrics.conversionsValue,

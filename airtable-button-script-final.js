@@ -177,7 +177,8 @@ async function fetchCampaigns(customerId, dateRange) {
         metrics.conversions_value,
         segments.date
     FROM campaign
-        WHERE segments.date BETWEEN ${dateRange}
+    WHERE segments.date BETWEEN ${dateRange}
+    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -191,7 +192,7 @@ async function fetchCampaigns(customerId, dateRange) {
         impressions: r.metrics.impressions,
         clicks: r.metrics.clicks,
         ctr: r.metrics.ctr,
-        cost: r.metrics.costMicros,
+        cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
         conversions: r.metrics.conversions,
         conversionRate: r.metrics.conversionsFromInteractionsRate,
         roas: r.metrics.conversionsValue,
@@ -216,7 +217,8 @@ async function fetchAdGroups(customerId, dateRange) {
         metrics.conversions_value,
         segments.date
     FROM ad_group
-        WHERE segments.date BETWEEN ${dateRange}
+    WHERE segments.date BETWEEN ${dateRange}
+    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -229,7 +231,7 @@ async function fetchAdGroups(customerId, dateRange) {
         impressions: r.metrics.impressions,
         clicks: r.metrics.clicks,
         ctr: r.metrics.ctr,
-        cost: r.metrics.costMicros,
+        cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
         conversions: r.metrics.conversions,
         conversionRate: r.metrics.conversionsFromInteractionsRate,
         roas: r.metrics.conversionsValue,
@@ -256,7 +258,8 @@ async function fetchKeywords(customerId, dateRange) {
         metrics.conversions_value,
         segments.date
     FROM keyword_view
-        WHERE segments.date BETWEEN ${dateRange}
+    WHERE segments.date BETWEEN ${dateRange}
+    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -273,7 +276,7 @@ async function fetchKeywords(customerId, dateRange) {
         impressions: r.metrics.impressions,
         clicks: r.metrics.clicks,
         ctr: r.metrics.ctr,
-        cost: r.metrics.costMicros,
+        cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
         conversions: r.metrics.conversions,
         conversionRate: r.metrics.conversionsFromInteractionsRate,
         roas: r.metrics.conversionsValue,
@@ -303,7 +306,8 @@ async function fetchAds(customerId, dateRange) {
         metrics.conversions_value,
         segments.date
     FROM ad_group_ad
-        WHERE segments.date BETWEEN ${dateRange}
+    WHERE segments.date BETWEEN ${dateRange}
+    AND (metrics.cost_micros > 0 OR metrics.clicks > 1)
     `;
     
     const rows = await executeGAQL(customerId, query);
@@ -321,7 +325,7 @@ async function fetchAds(customerId, dateRange) {
         impressions: r.metrics.impressions,
         clicks: r.metrics.clicks,
         ctr: r.metrics.ctr,
-        cost: r.metrics.costMicros,
+        cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
         conversions: r.metrics.conversions,
         conversionRate: r.metrics.conversionsFromInteractionsRate,
         roas: r.metrics.conversionsValue,

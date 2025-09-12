@@ -2,49 +2,15 @@
 const API_BASE_URL = "https://google-ads-airtable.vercel.app"; // Your actual Vercel URL
 
 
-function getStatusOption(statusName) {
-    const statusField = setDateTable.getField('Status');
-    const options = statusField.options.choices;
-    
-    let option = options.find(opt => opt.name === statusName);
-    
-    if (!option) {
-        const variations = {
-            'Pulling': ['Pulling', 'In Progress', 'Running', 'Processing'],
-            'Success': ['Success', 'Completed', 'Done', 'Finished'],
-            'Error': ['Error', 'Failed', 'Failed', 'Issue']
-        };
-        
-        const possibleNames = variations[statusName] || [statusName];
-        option = options.find(opt => possibleNames.includes(opt.name));
-    }
-    
-    if (!option) {
-        output.text(` Status option "${statusName}" not found. Available options:`);
-        options.forEach(opt => output.text(`   - "${opt.name}"`));
-        
-        // Use the first available option as fallback
-        const fallbackOption = options[0];
-        output.text(` Using fallback option: "${fallbackOption.name}"`);
-        return { name: fallbackOption.name };
-    }
-    
-    return { name: option.name };
-}
+// Status updates are handled by the API endpoint (master-date-pull.js)
+// No need for status control function in this script
 
 
 
 const setDateTable = base.getTable('Set Date');
 
 
-output.text('🔍 Checking Status field options...');
-const statusField = setDateTable.getField('Status');
-const statusOptions = statusField.options.choices;
-output.text('Available Status options:');
-statusOptions.forEach((option, index) => {
-    output.text(`   ${index + 1}. "${option.name}"`);
-});
-output.text('---');
+// Status field checking removed - handled by API endpoint
 
 const record = await input.recordAsync('Select a record from the Set Date table:', setDateTable);
 
@@ -77,21 +43,20 @@ if (startDateStr === "MISSING" || endDateStr === "MISSING") {
 }
 
 output.text(` Starting data pull for ${startDateStr} to ${endDateStr}...`);
-
-await setDateTable.updateRecordAsync(record.id, {
-    'Status': getStatusOption('Pulling'),
-    'Last Pull Status': 'Starting data pull...',
-    'Last Pull Time': new Date().toISOString(),
-    'Records Updated': 0
-});
+output.text(' Status updates will be handled by the API endpoint...');
 
 try {
     const apiUrl = `${API_BASE_URL}/api/pull-data?recordId=${record.id}&start=${startDateStr}&end=${endDateStr}`;
     
     output.text(` Calling API: ${API_BASE_URL}/api/pull-data`);
+    output.text(` Full URL: ${apiUrl}`);
     output.text(` Date range: ${startDateStr} to ${endDateStr}`);
     output.text(` Record ID: ${record.id}`);
     
+    // Test basic connectivity first
+    output.text(' Testing basic connectivity...');
+    const testResponse = await fetch(API_BASE_URL, { method: 'GET' });
+    output.text(` Basic connectivity test: ${testResponse.status} ${testResponse.statusText}`);
 
     const response = await fetch(apiUrl, {
         method: 'GET',
@@ -104,29 +69,17 @@ try {
     const result = await response.json();
     
     if (response.ok && result.success) {
-        await setDateTable.updateRecordAsync(record.id, {
-            'Status': getStatusOption('Success'),
-            'Last Pull Status': `Successfully pulled ${result.totalRecords} records`,
-            'Last Pull Time': new Date().toISOString(),
-            'Records Updated': result.totalRecords
-        });
-        
         output.text(`✅ Success! Pulled ${result.totalRecords} records:`);
         output.text(`   - ${result.breakdown.campaigns} campaigns`);
         output.text(`   - ${result.breakdown.adGroups} ad groups`);
         output.text(`   - ${result.breakdown.keywords} keywords`);
         output.text(`   - ${result.breakdown.ads} ads`);
+        output.text(' Status has been updated in the record by the API endpoint.');
         
     } else {
         const errorMessage = result.error || 'Unknown error occurred';
-        await setDateTable.updateRecordAsync(record.id, {
-            'Status': getStatusOption('Error'),
-            'Last Pull Status': `Error: ${errorMessage}`,
-            'Last Pull Time': new Date().toISOString(),
-            'Records Updated': 0
-        });
-        
         output.text(` Error: ${errorMessage}`);
+        output.text(' Error status has been updated in the record by the API endpoint.');
     }
     
 } catch (error) {
@@ -138,15 +91,9 @@ try {
         errorMessage = 'Cannot reach API endpoint. Check if Vercel deployment is running.';
     }
     
-    await setDateTable.updateRecordAsync(record.id, {
-        'Status': getStatusOption('Error'),
-        'Last Pull Status': `Error: ${errorMessage}`,
-        'Last Pull Time': new Date().toISOString(),
-        'Records Updated': 0
-    });
-    
     output.text(` Network Error: ${errorMessage}`);
     output.text(` Full error: ${error}`);
+    output.text(' Note: Status updates are handled by the API endpoint.');
 }
 
 output.text(' Script completed.');

@@ -213,9 +213,9 @@ class MasterDatePullService {
                 console.log(`Adding data for campaign ${r.campaign.name}:`);
                 console.log(`  Impressions: ${r.metrics.impressions}, Clicks: ${r.metrics.clicks}`);
                 console.log(`  Cost micros: ${r.metrics.costMicros}, Conversions: ${r.metrics.conversions}`);
-                console.log(`  Running totals - Impressions: ${campaign.impressions + ((r.metrics.impressions || 0) / 100)}, Clicks: ${campaign.clicks + (r.metrics.clicks || 0)}`);
+                console.log(`  Running totals - Impressions: ${campaign.impressions + ((r.metrics.impressions || 0) * 100)}, Clicks: ${campaign.clicks + (r.metrics.clicks || 0)}`);
                 
-                campaign.impressions += (r.metrics.impressions || 0) / 100;
+                campaign.impressions += (r.metrics.impressions || 0) * 100;
                 campaign.clicks += r.metrics.clicks || 0;
                 campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 campaign.conversions += r.metrics.conversions || 0;
@@ -297,7 +297,7 @@ class MasterDatePullService {
                 }
                 
                 const adGroup = adGroupMap.get(adGroupId);
-                adGroup.impressions += (r.metrics.impressions || 0) / 100;
+                adGroup.impressions += (r.metrics.impressions || 0) * 100;
                 adGroup.clicks += r.metrics.clicks || 0;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 adGroup.conversions += r.metrics.conversions || 0;
@@ -371,7 +371,7 @@ class MasterDatePullService {
                 }
                 
                 const keyword = keywordMap.get(keywordId);
-                keyword.impressions += (r.metrics.impressions || 0) / 100;
+                keyword.impressions += (r.metrics.impressions || 0) * 100;
                 keyword.clicks += r.metrics.clicks || 0;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 keyword.conversions += r.metrics.conversions || 0;
@@ -449,7 +449,7 @@ class MasterDatePullService {
                 }
                 
                 const ad = adMap.get(adId);
-                ad.impressions += (r.metrics.impressions || 0) / 100;
+                ad.impressions += (r.metrics.impressions || 0) * 100;
                 ad.clicks += r.metrics.clicks || 0;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 ad.conversions += r.metrics.conversions || 0;

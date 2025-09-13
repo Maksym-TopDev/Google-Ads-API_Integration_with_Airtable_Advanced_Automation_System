@@ -158,24 +158,49 @@ class MasterDatePullService {
         `;
         
         const rows = await this.executeGAQL(customerId, query);
-        return rows
+        
+        // Aggregate data by campaign ID to avoid duplicates
+        const campaignMap = new Map();
+        
+        rows
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .map((r) => ({
-            id: String(r.campaign.id),
-            name: r.campaign.name,
-            status: r.campaign.status,
-            channelType: r.campaign.advertisingChannelType,
-            startDate: r.campaign.startDate,
-            endDate: r.campaign.endDate,
-            impressions: r.metrics.impressions,
-            clicks: r.metrics.clicks,
-            ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
-            conversions: r.metrics.conversions,
-            conversionRate: r.metrics.conversionsFromInteractionsRate,
-            roas: r.metrics.conversionsValue,
-            lastUpdated: new Date().toISOString(),
-        }));
+            .forEach((r) => {
+                const campaignId = String(r.campaign.id);
+                
+                if (!campaignMap.has(campaignId)) {
+                    campaignMap.set(campaignId, {
+                        id: campaignId,
+                        name: r.campaign.name,
+                        status: r.campaign.status,
+                        channelType: r.campaign.advertisingChannelType,
+                        startDate: r.campaign.startDate,
+                        endDate: r.campaign.endDate,
+                        impressions: 0,
+                        clicks: 0,
+                        cost: 0,
+                        cpc: 0,
+                        conversions: 0,
+                        conversionRate: 0,
+                        lastUpdated: new Date().toISOString(),
+                    });
+                }
+                
+                const campaign = campaignMap.get(campaignId);
+                campaign.impressions += r.metrics.impressions || 0;
+                campaign.clicks += r.metrics.clicks || 0;
+                campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
+                campaign.conversions += r.metrics.conversions || 0;
+            });
+        
+        // Calculate CTR, conversion rate, and CPC from aggregated data
+        const aggregatedCampaigns = Array.from(campaignMap.values()).map(campaign => {
+            campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+            campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0;
+            campaign.cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
+            return campaign;
+        });
+        
+        return aggregatedCampaigns;
     }
 
     async fetchAdGroups(customerId, dateRange) {
@@ -199,23 +224,48 @@ class MasterDatePullService {
         `;
         
         const rows = await this.executeGAQL(customerId, query);
-        return rows
+        
+        // Aggregate data by ad group ID to avoid duplicates
+        const adGroupMap = new Map();
+        
+        rows
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .map((r) => ({
-            id: String(r.adGroup.id),
-            name: r.adGroup.name,
-            status: r.adGroup.status,
-            campaignId: r.adGroup.campaign?.split('/').pop(),
-            campaignName: '',
-            impressions: r.metrics.impressions,
-            clicks: r.metrics.clicks,
-            ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
-            conversions: r.metrics.conversions,
-            conversionRate: r.metrics.conversionsFromInteractionsRate,
-            roas: r.metrics.conversionsValue,
-            lastUpdated: new Date().toISOString(),
-        }));
+            .forEach((r) => {
+                const adGroupId = String(r.adGroup.id);
+                
+                if (!adGroupMap.has(adGroupId)) {
+                    adGroupMap.set(adGroupId, {
+                        id: adGroupId,
+                        name: r.adGroup.name,
+                        status: r.adGroup.status,
+                        campaignId: r.adGroup.campaign?.split('/').pop(),
+                        campaignName: '',
+                        impressions: 0,
+                        clicks: 0,
+                        cost: 0,
+                        cpc: 0,
+                        conversions: 0,
+                        conversionRate: 0,
+                        lastUpdated: new Date().toISOString(),
+                    });
+                }
+                
+                const adGroup = adGroupMap.get(adGroupId);
+                adGroup.impressions += r.metrics.impressions || 0;
+                adGroup.clicks += r.metrics.clicks || 0;
+                adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
+                adGroup.conversions += r.metrics.conversions || 0;
+            });
+        
+        // Calculate CTR, conversion rate, and CPC from aggregated data
+        const aggregatedAdGroups = Array.from(adGroupMap.values()).map(adGroup => {
+            adGroup.ctr = adGroup.impressions > 0 ? (adGroup.clicks / adGroup.impressions) * 100 : 0;
+            adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) * 100 : 0;
+            adGroup.cpc = adGroup.clicks > 0 ? adGroup.cost / adGroup.clicks : 0;
+            return adGroup;
+        });
+        
+        return aggregatedAdGroups;
     }
 
     async fetchKeywords(customerId, dateRange) {
@@ -241,27 +291,52 @@ class MasterDatePullService {
         `;
         
         const rows = await this.executeGAQL(customerId, query);
-        return rows
+        
+        // Aggregate data by keyword ID to avoid duplicates
+        const keywordMap = new Map();
+        
+        rows
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .map((r) => ({
-            id: String(r.adGroupCriterion.criterionId),
-            text: r.adGroupCriterion.keyword?.text,
-            matchType: r.adGroupCriterion.keyword?.matchType,
-            status: r.adGroupCriterion.status,
-            adGroupId: r.adGroupCriterion.adGroup?.split('/').pop(),
-            adGroupName: '',
-            campaignId: '',
-            campaignName: '',
-            qualityScore: r.adGroupCriterion.qualityInfo?.qualityScore,
-            impressions: r.metrics.impressions,
-            clicks: r.metrics.clicks,
-            ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
-            conversions: r.metrics.conversions,
-            conversionRate: r.metrics.conversionsFromInteractionsRate,
-            roas: r.metrics.conversionsValue,
-            lastUpdated: new Date().toISOString(),
-        }));
+            .forEach((r) => {
+                const keywordId = String(r.adGroupCriterion.criterionId);
+                
+                if (!keywordMap.has(keywordId)) {
+                    keywordMap.set(keywordId, {
+                        id: keywordId,
+                        text: r.adGroupCriterion.keyword?.text,
+                        matchType: r.adGroupCriterion.keyword?.matchType,
+                        status: r.adGroupCriterion.status,
+                        adGroupId: r.adGroupCriterion.adGroup?.split('/').pop(),
+                        adGroupName: '',
+                        campaignId: '',
+                        campaignName: '',
+                        qualityScore: r.adGroupCriterion.qualityInfo?.qualityScore,
+                        impressions: 0,
+                        clicks: 0,
+                        cost: 0,
+                        cpc: 0,
+                        conversions: 0,
+                        conversionRate: 0,
+                        lastUpdated: new Date().toISOString(),
+                    });
+                }
+                
+                const keyword = keywordMap.get(keywordId);
+                keyword.impressions += r.metrics.impressions || 0;
+                keyword.clicks += r.metrics.clicks || 0;
+                keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
+                keyword.conversions += r.metrics.conversions || 0;
+            });
+        
+        // Calculate CTR, conversion rate, and CPC from aggregated data
+        const aggregatedKeywords = Array.from(keywordMap.values()).map(keyword => {
+            keyword.ctr = keyword.impressions > 0 ? (keyword.clicks / keyword.impressions) * 100 : 0;
+            keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) * 100 : 0;
+            keyword.cpc = keyword.clicks > 0 ? keyword.cost / keyword.clicks : 0;
+            return keyword;
+        });
+        
+        return aggregatedKeywords;
     }
 
     async fetchAds(customerId, dateRange) {
@@ -290,28 +365,53 @@ class MasterDatePullService {
         `;
         
         const rows = await this.executeGAQL(customerId, query);
-        return rows
+        
+        // Aggregate data by ad ID to avoid duplicates
+        const adMap = new Map();
+        
+        rows
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .map((r) => ({
-            id: String(r.adGroupAd.ad.id),
-            headlines: r.adGroupAd.ad.responsiveSearchAd?.headlines?.map(h => h.text).join(' | '),
-            descriptions: r.adGroupAd.ad.responsiveSearchAd?.descriptions?.map(d => d.text).join(' | '),
-            path1: r.adGroupAd.ad.responsiveSearchAd?.path1,
-            path2: r.adGroupAd.ad.responsiveSearchAd?.path2,
-            finalUrls: r.adGroupAd.ad.finalUrls?.join(', '),
-            adGroupId: r.adGroupAd.adGroup?.split('/').pop(),
-            adGroupName: '',
-            campaignId: '',
-            campaignName: '',
-            impressions: r.metrics.impressions,
-            clicks: r.metrics.clicks,
-            ctr: r.metrics.ctr,
-            cost: r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0,
-            conversions: r.metrics.conversions,
-            conversionRate: r.metrics.conversionsFromInteractionsRate,
-            roas: r.metrics.conversionsValue,
-            lastUpdated: new Date().toISOString(),
-        }));
+            .forEach((r) => {
+                const adId = String(r.adGroupAd.ad.id);
+                
+                if (!adMap.has(adId)) {
+                    adMap.set(adId, {
+                        id: adId,
+                        headlines: r.adGroupAd.ad.responsiveSearchAd?.headlines?.map(h => h.text).join(' | '),
+                        descriptions: r.adGroupAd.ad.responsiveSearchAd?.descriptions?.map(d => d.text).join(' | '),
+                        path1: r.adGroupAd.ad.responsiveSearchAd?.path1,
+                        path2: r.adGroupAd.ad.responsiveSearchAd?.path2,
+                        finalUrls: r.adGroupAd.ad.finalUrls?.join(', '),
+                        adGroupId: r.adGroupAd.adGroup?.split('/').pop(),
+                        adGroupName: '',
+                        campaignId: '',
+                        campaignName: '',
+                        impressions: 0,
+                        clicks: 0,
+                        cost: 0,
+                        cpc: 0,
+                        conversions: 0,
+                        conversionRate: 0,
+                        lastUpdated: new Date().toISOString(),
+                    });
+                }
+                
+                const ad = adMap.get(adId);
+                ad.impressions += r.metrics.impressions || 0;
+                ad.clicks += r.metrics.clicks || 0;
+                ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
+                ad.conversions += r.metrics.conversions || 0;
+            });
+        
+        // Calculate CTR, conversion rate, and CPC from aggregated data
+        const aggregatedAds = Array.from(adMap.values()).map(ad => {
+            ad.ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
+            ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) * 100 : 0;
+            ad.cpc = ad.clicks > 0 ? ad.cost / ad.clicks : 0;
+            return ad;
+        });
+        
+        return aggregatedAds;
     }
 
     async clearExistingData() {
@@ -392,9 +492,9 @@ class MasterDatePullService {
             'Clicks': c.clicks,
             'CTR': c.ctr,
             'Cost': c.cost,
+            'CPC': c.cpc,
             'Conversions': c.conversions,
             'Conversion Rate': c.conversionRate,
-            'ROAS': c.roas,
             'Last Updated': c.lastUpdated,
         }}));
         
@@ -423,9 +523,9 @@ class MasterDatePullService {
             'Clicks': ag.clicks,
             'CTR': ag.ctr,
             'Cost': ag.cost,
+            'CPC': ag.cpc,
             'Conversions': ag.conversions,
             'Conversion Rate': ag.conversionRate,
-            'ROAS': ag.roas,
             'Last Updated': ag.lastUpdated,
         }}));
         
@@ -457,9 +557,9 @@ class MasterDatePullService {
             'Clicks': k.clicks,
             'CTR': k.ctr,
             'Cost': k.cost,
+            'CPC': k.cpc,
             'Conversions': k.conversions,
             'Conversion Rate': k.conversionRate,
-            'ROAS': k.roas,
             'Quality Score': k.qualityScore,
             'Last Updated': k.lastUpdated,
         }}));
@@ -494,9 +594,9 @@ class MasterDatePullService {
             'Clicks': ad.clicks,
             'CTR': ad.ctr,
             'Cost': ad.cost,
+            'CPC': ad.cpc,
             'Conversions': ad.conversions,
             'Conversion Rate': ad.conversionRate,
-            'ROAS': ad.roas,
             'Last Updated': ad.lastUpdated,
         }}));
         

@@ -284,13 +284,16 @@ class MasterDatePullService {
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
             .forEach((r) => {
                 const adGroupId = String(r.adGroup.id);
+                const campaignId = r.adGroup.campaign?.split('/').pop();
+                // Create composite key: Ad Group ID + Campaign ID
+                const compositeKey = `${adGroupId}_${campaignId}`;
                 
-                if (!adGroupMap.has(adGroupId)) {
-                    adGroupMap.set(adGroupId, {
+                if (!adGroupMap.has(compositeKey)) {
+                    adGroupMap.set(compositeKey, {
                         id: adGroupId,
                         name: r.adGroup.name,
                         status: r.adGroup.status,
-                        campaignId: r.adGroup.campaign?.split('/').pop(),
+                        campaignId: campaignId,
                         campaignName: '',
                         impressions: 0,
                         clicks: 0,
@@ -304,7 +307,7 @@ class MasterDatePullService {
                     });
                 }
                 
-                const adGroup = adGroupMap.get(adGroupId);
+                const adGroup = adGroupMap.get(compositeKey);
                 adGroup.impressions += r.metrics.impressions || 0;
                 adGroup.clicks += r.metrics.clicks || 0;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
@@ -361,16 +364,20 @@ class MasterDatePullService {
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
             .forEach((r) => {
                 const keywordId = String(r.adGroupCriterion.criterionId);
+                const adGroupId = r.adGroupCriterion.adGroup?.split('/').pop();
+                const campaignId = r.adGroup.campaign?.split('/').pop();
+                // Create composite key: Keyword ID + Ad Group ID + Campaign ID
+                const compositeKey = `${keywordId}_${adGroupId}_${campaignId}`;
                 
-                if (!keywordMap.has(keywordId)) {
-                    keywordMap.set(keywordId, {
+                if (!keywordMap.has(compositeKey)) {
+                    keywordMap.set(compositeKey, {
                         id: keywordId,
                         text: r.adGroupCriterion.keyword?.text,
                         matchType: r.adGroupCriterion.keyword?.matchType,
                         status: r.adGroupCriterion.status,
-                        adGroupId: r.adGroupCriterion.adGroup?.split('/').pop(),
+                        adGroupId: adGroupId,
                         adGroupName: '',
-                        campaignId: '',
+                        campaignId: campaignId,
                         campaignName: '',
                         qualityScore: r.adGroupCriterion.qualityInfo?.qualityScore,
                         impressions: 0,
@@ -385,7 +392,7 @@ class MasterDatePullService {
                     });
                 }
                 
-                const keyword = keywordMap.get(keywordId);
+                const keyword = keywordMap.get(compositeKey);
                 keyword.impressions += r.metrics.impressions || 0;
                 keyword.clicks += r.metrics.clicks || 0;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
@@ -445,18 +452,22 @@ class MasterDatePullService {
             .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
             .forEach((r) => {
                 const adId = String(r.adGroupAd.ad.id);
+                const adGroupId = r.adGroupAd.adGroup?.split('/').pop();
+                const campaignId = r.adGroup.campaign?.split('/').pop();
+                // Create composite key: Ad ID + Ad Group ID + Campaign ID
+                const compositeKey = `${adId}_${adGroupId}_${campaignId}`;
                 
-                if (!adMap.has(adId)) {
-                    adMap.set(adId, {
+                if (!adMap.has(compositeKey)) {
+                    adMap.set(compositeKey, {
                         id: adId,
                         headlines: r.adGroupAd.ad.responsiveSearchAd?.headlines?.map(h => h.text).join(' | '),
                         descriptions: r.adGroupAd.ad.responsiveSearchAd?.descriptions?.map(d => d.text).join(' | '),
                         path1: r.adGroupAd.ad.responsiveSearchAd?.path1,
                         path2: r.adGroupAd.ad.responsiveSearchAd?.path2,
                         finalUrls: r.adGroupAd.ad.finalUrls?.join(', '),
-                        adGroupId: r.adGroupAd.adGroup?.split('/').pop(),
+                        adGroupId: adGroupId,
                         adGroupName: '',
-                        campaignId: '',
+                        campaignId: campaignId,
                         campaignName: '',
                         impressions: 0,
                         clicks: 0,
@@ -470,7 +481,7 @@ class MasterDatePullService {
                     });
                 }
                 
-                const ad = adMap.get(adId);
+                const ad = adMap.get(compositeKey);
                 ad.impressions += r.metrics.impressions || 0;
                 ad.clicks += r.metrics.clicks || 0;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;

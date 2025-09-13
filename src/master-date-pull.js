@@ -579,8 +579,6 @@ class MasterDatePullService {
             'Conversions': c.conversions,
             'Conversion Rate': c.conversionRate,
             'ROAS': c.roas,
-            'CPA': c.cpa,
-            'Performance Score': c.performanceScore,
             'Last Updated': c.lastUpdated,
         }}));
         
@@ -613,8 +611,6 @@ class MasterDatePullService {
             'Conversions': ag.conversions,
             'Conversion Rate': ag.conversionRate,
             'ROAS': ag.roas,
-            'CPA': ag.cpa,
-            'Performance Score': ag.performanceScore,
             'Last Updated': ag.lastUpdated,
         }}));
         
@@ -650,8 +646,6 @@ class MasterDatePullService {
             'Conversions': k.conversions,
             'Conversion Rate': k.conversionRate,
             'ROAS': k.roas,
-            'CPA': k.cpa,
-            'Performance Score': k.performanceScore,
             'Quality Score': k.qualityScore,
             'Last Updated': k.lastUpdated,
         }}));
@@ -690,8 +684,6 @@ class MasterDatePullService {
             'Conversions': ad.conversions,
             'Conversion Rate': ad.conversionRate,
             'ROAS': ad.roas,
-            'CPA': ad.cpa,
-            'Performance Score': ad.performanceScore,
             'Last Updated': ad.lastUpdated,
         }}));
         

@@ -43,24 +43,42 @@ class MasterDatePullService {
     }
 
     async executeGAQL(customerId, query) {
-        const accessToken = await this.getAccessToken();
-        const url = `https://googleads.googleapis.com/${API_VERSION}/customers/${customerId}/googleAds:searchStream`;
-        
-        const resp = await axios.post(url, { query }, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-                'login-customer-id': (process.env.GOOGLE_ADS_MCC_ID || '').replace(/-/g, ''),
-            },
-            timeout: 120000,
-        });
-        
-        const rows = [];
-        for (const chunk of resp.data) {
-            if (chunk.results) rows.push(...chunk.results);
+        try {
+            const accessToken = await this.getAccessToken();
+            const url = `https://googleads.googleapis.com/${API_VERSION}/customers/${customerId}/googleAds:searchStream`;
+            
+            console.log(`Executing GAQL query for customer ${customerId}:`, query);
+            
+            const resp = await axios.post(url, { query }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+                    'login-customer-id': (process.env.GOOGLE_ADS_MCC_ID || '').replace(/-/g, ''),
+                },
+                timeout: 120000,
+            });
+            
+            const rows = [];
+            for (const chunk of resp.data) {
+                if (chunk.results) rows.push(...chunk.results);
+            }
+            
+            console.log(`Query returned ${rows.length} rows`);
+            return rows;
+        } catch (error) {
+            console.error('GAQL execution error:', error);
+            
+            // Extract more detailed error information
+            if (error.response) {
+                const errorDetails = error.response.data || error.response.statusText;
+                throw new Error(`Google Ads API Error (${error.response.status}): ${JSON.stringify(errorDetails)}`);
+            } else if (error.request) {
+                throw new Error(`Network Error: ${error.message}`);
+            } else {
+                throw new Error(`Request Error: ${error.message}`);
+            }
         }
-        return rows;
     }
 
     async getMasterDateRange() {
@@ -665,8 +683,18 @@ class MasterDatePullService {
             
         } catch (error) {
             console.error('❌ Error during data pull:', error);
-            await this.updateStatus('Error', `Error: ${error.message}`, 0, recordId);
-            throw error;
+            
+            let errorMessage = 'Unknown error';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                errorMessage = JSON.stringify(error);
+            }
+            
+            await this.updateStatus('Error', `Error: ${errorMessage}`, 0, recordId);
+            throw new Error(errorMessage);
         }
     }
 
@@ -703,8 +731,18 @@ class MasterDatePullService {
             };
         } catch (error) {
             console.error('❌ Error during ranged data pull:', error);
-            await this.updateStatus('Error', `Error: ${error.message}`, 0, recordId);
-            throw error;
+            
+            let errorMessage = 'Unknown error';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                errorMessage = JSON.stringify(error);
+            }
+            
+            await this.updateStatus('Error', `Error: ${errorMessage}`, 0, recordId);
+            throw new Error(errorMessage);
         }
     }
 }

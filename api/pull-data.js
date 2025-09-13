@@ -53,9 +53,25 @@ module.exports = async (req, res) => {
     res.status(200).json({ success: true, ...result });
     
   } catch (e) {
-    const message = e?.response?.data || e?.message || 'Unknown error';
     console.error('API Error:', e);
-    res.status(500).json({ success: false, error: message });
+    
+    let errorMessage = 'Unknown error';
+    
+    if (e?.response?.data) {
+      // Google Ads API error
+      if (typeof e.response.data === 'object') {
+        errorMessage = JSON.stringify(e.response.data, null, 2);
+      } else {
+        errorMessage = e.response.data;
+      }
+    } else if (e?.message) {
+      errorMessage = e.message;
+    } else if (typeof e === 'string') {
+      errorMessage = e;
+    }
+    
+    console.error('Error details:', errorMessage);
+    res.status(500).json({ success: false, error: errorMessage });
   }
 };
 

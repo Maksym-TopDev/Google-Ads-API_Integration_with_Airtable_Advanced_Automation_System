@@ -150,11 +150,10 @@ class MasterDatePullService {
             metrics.cost_micros,
             metrics.conversions,
             metrics.conversions_from_interactions_rate,
-            metrics.conversions_value,
-            segments.date
+            metrics.conversions_value
         FROM campaign
         WHERE segments.date BETWEEN ${dateRange}
-        AND metrics.cost_micros > 0
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -162,9 +161,7 @@ class MasterDatePullService {
         // Aggregate data by campaign ID to avoid duplicates
         const campaignMap = new Map();
         
-        rows
-            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .forEach((r) => {
+        rows.forEach((r) => {
                 const campaignId = String(r.campaign.id);
                 
                 if (!campaignMap.has(campaignId)) {
@@ -181,6 +178,8 @@ class MasterDatePullService {
                         cpc: 0,
                         conversions: 0,
                         conversionRate: 0,
+                        conversionsValue: 0,
+                        roas: 0,
                         lastUpdated: new Date().toISOString(),
                     });
                 }
@@ -190,13 +189,15 @@ class MasterDatePullService {
                 campaign.clicks += r.metrics.clicks || 0;
                 campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 campaign.conversions += r.metrics.conversions || 0;
+                campaign.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
-        // Calculate CTR, conversion rate, and CPC from aggregated data
+        // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedCampaigns = Array.from(campaignMap.values()).map(campaign => {
             campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
             campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0;
             campaign.cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
+            campaign.roas = campaign.cost > 0 ? campaign.conversionsValue / campaign.cost : 0;
             return campaign;
         });
         
@@ -216,11 +217,10 @@ class MasterDatePullService {
             metrics.cost_micros,
             metrics.conversions,
             metrics.conversions_from_interactions_rate,
-            metrics.conversions_value,
-            segments.date
+            metrics.conversions_value
         FROM ad_group
         WHERE segments.date BETWEEN ${dateRange}
-        AND metrics.cost_micros > 0
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -228,9 +228,7 @@ class MasterDatePullService {
         // Aggregate data by ad group ID to avoid duplicates
         const adGroupMap = new Map();
         
-        rows
-            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .forEach((r) => {
+        rows.forEach((r) => {
                 const adGroupId = String(r.adGroup.id);
                 
                 if (!adGroupMap.has(adGroupId)) {
@@ -246,6 +244,8 @@ class MasterDatePullService {
                         cpc: 0,
                         conversions: 0,
                         conversionRate: 0,
+                        conversionsValue: 0,
+                        roas: 0,
                         lastUpdated: new Date().toISOString(),
                     });
                 }
@@ -255,13 +255,15 @@ class MasterDatePullService {
                 adGroup.clicks += r.metrics.clicks || 0;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 adGroup.conversions += r.metrics.conversions || 0;
+                adGroup.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
-        // Calculate CTR, conversion rate, and CPC from aggregated data
+        // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAdGroups = Array.from(adGroupMap.values()).map(adGroup => {
             adGroup.ctr = adGroup.impressions > 0 ? (adGroup.clicks / adGroup.impressions) * 100 : 0;
             adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) * 100 : 0;
             adGroup.cpc = adGroup.clicks > 0 ? adGroup.cost / adGroup.clicks : 0;
+            adGroup.roas = adGroup.cost > 0 ? adGroup.conversionsValue / adGroup.cost : 0;
             return adGroup;
         });
         
@@ -283,11 +285,10 @@ class MasterDatePullService {
             metrics.cost_micros,
             metrics.conversions,
             metrics.conversions_from_interactions_rate,
-            metrics.conversions_value,
-            segments.date
+            metrics.conversions_value
         FROM keyword_view
         WHERE segments.date BETWEEN ${dateRange}
-        AND metrics.cost_micros > 0
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -295,9 +296,7 @@ class MasterDatePullService {
         // Aggregate data by keyword ID to avoid duplicates
         const keywordMap = new Map();
         
-        rows
-            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .forEach((r) => {
+        rows.forEach((r) => {
                 const keywordId = String(r.adGroupCriterion.criterionId);
                 
                 if (!keywordMap.has(keywordId)) {
@@ -317,6 +316,8 @@ class MasterDatePullService {
                         cpc: 0,
                         conversions: 0,
                         conversionRate: 0,
+                        conversionsValue: 0,
+                        roas: 0,
                         lastUpdated: new Date().toISOString(),
                     });
                 }
@@ -326,13 +327,15 @@ class MasterDatePullService {
                 keyword.clicks += r.metrics.clicks || 0;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 keyword.conversions += r.metrics.conversions || 0;
+                keyword.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
-        // Calculate CTR, conversion rate, and CPC from aggregated data
+        // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedKeywords = Array.from(keywordMap.values()).map(keyword => {
             keyword.ctr = keyword.impressions > 0 ? (keyword.clicks / keyword.impressions) * 100 : 0;
             keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) * 100 : 0;
             keyword.cpc = keyword.clicks > 0 ? keyword.cost / keyword.clicks : 0;
+            keyword.roas = keyword.cost > 0 ? keyword.conversionsValue / keyword.cost : 0;
             return keyword;
         });
         
@@ -357,11 +360,10 @@ class MasterDatePullService {
             metrics.cost_micros,
             metrics.conversions,
             metrics.conversions_from_interactions_rate,
-            metrics.conversions_value,
-            segments.date
+            metrics.conversions_value
         FROM ad_group_ad
         WHERE segments.date BETWEEN ${dateRange}
-        AND metrics.cost_micros > 0
+        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -369,9 +371,7 @@ class MasterDatePullService {
         // Aggregate data by ad ID to avoid duplicates
         const adMap = new Map();
         
-        rows
-            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
-            .forEach((r) => {
+        rows.forEach((r) => {
                 const adId = String(r.adGroupAd.ad.id);
                 
                 if (!adMap.has(adId)) {
@@ -392,6 +392,8 @@ class MasterDatePullService {
                         cpc: 0,
                         conversions: 0,
                         conversionRate: 0,
+                        conversionsValue: 0,
+                        roas: 0,
                         lastUpdated: new Date().toISOString(),
                     });
                 }
@@ -401,13 +403,15 @@ class MasterDatePullService {
                 ad.clicks += r.metrics.clicks || 0;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 ad.conversions += r.metrics.conversions || 0;
+                ad.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
-        // Calculate CTR, conversion rate, and CPC from aggregated data
+        // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAds = Array.from(adMap.values()).map(ad => {
             ad.ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
             ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) * 100 : 0;
             ad.cpc = ad.clicks > 0 ? ad.cost / ad.clicks : 0;
+            ad.roas = ad.cost > 0 ? ad.conversionsValue / ad.cost : 0;
             return ad;
         });
         
@@ -495,6 +499,7 @@ class MasterDatePullService {
             'CPC': c.cpc,
             'Conversions': c.conversions,
             'Conversion Rate': c.conversionRate,
+            'ROAS': c.roas,
             'Last Updated': c.lastUpdated,
         }}));
         
@@ -526,6 +531,7 @@ class MasterDatePullService {
             'CPC': ag.cpc,
             'Conversions': ag.conversions,
             'Conversion Rate': ag.conversionRate,
+            'ROAS': ag.roas,
             'Last Updated': ag.lastUpdated,
         }}));
         
@@ -560,6 +566,7 @@ class MasterDatePullService {
             'CPC': k.cpc,
             'Conversions': k.conversions,
             'Conversion Rate': k.conversionRate,
+            'ROAS': k.roas,
             'Quality Score': k.qualityScore,
             'Last Updated': k.lastUpdated,
         }}));
@@ -597,6 +604,7 @@ class MasterDatePullService {
             'CPC': ad.cpc,
             'Conversions': ad.conversions,
             'Conversion Rate': ad.conversionRate,
+            'ROAS': ad.roas,
             'Last Updated': ad.lastUpdated,
         }}));
         

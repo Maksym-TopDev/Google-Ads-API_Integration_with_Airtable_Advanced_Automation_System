@@ -624,8 +624,6 @@ class MasterDatePullService {
             };
             
             // Add optional fields if they exist in Airtable
-            if (ag.cpa !== undefined) fields['CPA'] = ag.cpa;
-            if (ag.performanceScore !== undefined) fields['Performance Score'] = ag.performanceScore;
             
             return { fields };
         });
@@ -669,7 +667,6 @@ class MasterDatePullService {
             
             // Add optional fields if they exist in Airtable
             if (k.cpa !== undefined) fields['CPA'] = k.cpa;
-            if (k.performanceScore !== undefined) fields['Performance Score'] = k.performanceScore;
             
             return { fields };
         });
@@ -714,7 +711,6 @@ class MasterDatePullService {
             
             // Add optional fields if they exist in Airtable
             if (ad.cpa !== undefined) fields['CPA'] = ad.cpa;
-            if (ad.performanceScore !== undefined) fields['Performance Score'] = ad.performanceScore;
             
             return { fields };
         });

@@ -225,7 +225,7 @@ class MasterDatePullService {
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedCampaigns = Array.from(campaignMap.values()).map(campaign => {
             // CTR: Calculate from aggregated data
-            campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+            campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) : 0;
             
             // Conversion Rate: Calculate from aggregated data (no multiplication by 100)
             campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) : 0;
@@ -306,7 +306,7 @@ class MasterDatePullService {
         
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAdGroups = Array.from(adGroupMap.values()).map(adGroup => {
-            adGroup.ctr = adGroup.impressions > 0 ? (adGroup.clicks / adGroup.impressions) * 100 : 0;
+            adGroup.ctr = adGroup.impressions > 0 ? (adGroup.clicks / adGroup.impressions) : 0;
             adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) : 0;
             adGroup.cpc = adGroup.clicks > 0 ? adGroup.cost / adGroup.clicks : 0;
             adGroup.roas = adGroup.cost > 0 ? adGroup.conversionsValue / adGroup.cost : 0;
@@ -380,7 +380,7 @@ class MasterDatePullService {
         
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedKeywords = Array.from(keywordMap.values()).map(keyword => {
-            keyword.ctr = keyword.impressions > 0 ? (keyword.clicks / keyword.impressions) * 100 : 0;
+            keyword.ctr = keyword.impressions > 0 ? (keyword.clicks / keyword.impressions) : 0;
             keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) : 0;
             keyword.cpc = keyword.clicks > 0 ? keyword.cost / keyword.clicks : 0;
             keyword.roas = keyword.cost > 0 ? keyword.conversionsValue / keyword.cost : 0;
@@ -458,7 +458,7 @@ class MasterDatePullService {
         
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAds = Array.from(adMap.values()).map(ad => {
-            ad.ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
+            ad.ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) : 0;
             ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) : 0;
             ad.cpc = ad.clicks > 0 ? ad.cost / ad.clicks : 0;
             ad.roas = ad.cost > 0 ? ad.conversionsValue / ad.cost : 0;

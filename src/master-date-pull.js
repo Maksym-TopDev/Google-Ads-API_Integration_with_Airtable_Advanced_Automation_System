@@ -214,25 +214,24 @@ class MasterDatePullService {
         
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedCampaigns = Array.from(campaignMap.values()).map(campaign => {
+            // CTR: Calculate from aggregated data
             campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
             
-            // Calculate conversion rate from aggregated data
-            if (campaign.clicks > 0) {
-                const rawRate = campaign.conversions / campaign.clicks;
-                console.log(`Campaign ${campaign.name}: conversions=${campaign.conversions}, clicks=${campaign.clicks}, rawRate=${rawRate}`);
-                
-                // If rawRate > 1, it means conversions is already a percentage
-                if (rawRate > 1) {
-                    campaign.conversionRate = campaign.conversions; // Use directly if already percentage
-                } else {
-                    campaign.conversionRate = rawRate * 100; // Calculate percentage if raw count
-                }
-            } else {
-                campaign.conversionRate = 0;
-            }
+            // Conversion Rate: Calculate from aggregated data
+            campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0;
             
+            // CPC: Cost per click
             campaign.cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
+            
+            // ROAS: Revenue per dollar spent
             campaign.roas = campaign.cost > 0 ? campaign.conversionsValue / campaign.cost : 0;
+            
+            // Debug logging
+            console.log(`Campaign ${campaign.name}:`);
+            console.log(`  Impressions: ${campaign.impressions}, Clicks: ${campaign.clicks}, CTR: ${campaign.ctr}%`);
+            console.log(`  Conversions: ${campaign.conversions}, Conversion Rate: ${campaign.conversionRate}%`);
+            console.log(`  Cost: $${campaign.cost}, Conversions Value: $${campaign.conversionsValue}, ROAS: ${campaign.roas}`);
+            
             return campaign;
         });
         

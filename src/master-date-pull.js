@@ -504,6 +504,21 @@ class MasterDatePullService {
             // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
             ad.performanceScore = ad.ctr * ad.conversionRate * ad.roas * 100;
             
+            // Phase 2: Meets Thresholds and Rating logic
+            // Cost >= $100 and ROAS >= 300% = Rating 5, Meets Thresholds = true
+            // Cost >= $100 and ROAS 200-300% = Rating 4, Meets Thresholds = false
+            // All other cases = Rating 1, Meets Thresholds = false
+            if (ad.cost >= 100 && ad.roas >= 3.0) {
+                ad.rating = 5;
+                ad.meetsThresholds = true;
+            } else if (ad.cost >= 100 && ad.roas >= 2.0 && ad.roas < 3.0) {
+                ad.rating = 4;
+                ad.meetsThresholds = false;
+            } else {
+                ad.rating = 1;
+                ad.meetsThresholds = false;
+            }
+            
             return ad;
         });
         
@@ -599,7 +614,6 @@ class MasterDatePullService {
             
             // Add optional fields if they exist in Airtable
             if (c.cpa !== undefined) fields['CPA'] = c.cpa;
-            if (c.performanceScore !== undefined) fields['Performance Score'] = c.performanceScore;
             
             return { fields };
         });
@@ -728,6 +742,9 @@ class MasterDatePullService {
             
             // Add optional fields if they exist in Airtable
             if (ad.cpa !== undefined) fields['CPA'] = ad.cpa;
+            if (ad.performanceScore !== undefined) fields['Performance Score'] = ad.performanceScore;
+            if (ad.meetsThresholds !== undefined) fields['Meets Thresholds'] = ad.meetsThresholds;
+            if (ad.rating !== undefined) fields['Rating'] = ad.rating;
             
             return { fields };
         });

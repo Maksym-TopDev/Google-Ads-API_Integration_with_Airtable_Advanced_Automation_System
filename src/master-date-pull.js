@@ -171,7 +171,7 @@ class MasterDatePullService {
             metrics.conversions_value
         FROM campaign
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
+        AND metrics.cost_micros > 0
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -179,7 +179,9 @@ class MasterDatePullService {
         // Aggregate data by campaign ID to avoid duplicates
         const campaignMap = new Map();
         
-        rows.forEach((r) => {
+        rows
+            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+            .forEach((r) => {
                 const campaignId = String(r.campaign.id);
                 
                 if (!campaignMap.has(campaignId)) {
@@ -238,7 +240,7 @@ class MasterDatePullService {
             metrics.conversions_value
         FROM ad_group
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
+        AND metrics.cost_micros > 0
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -246,7 +248,9 @@ class MasterDatePullService {
         // Aggregate data by ad group ID to avoid duplicates
         const adGroupMap = new Map();
         
-        rows.forEach((r) => {
+        rows
+            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+            .forEach((r) => {
                 const adGroupId = String(r.adGroup.id);
                 
                 if (!adGroupMap.has(adGroupId)) {
@@ -306,7 +310,7 @@ class MasterDatePullService {
             metrics.conversions_value
         FROM keyword_view
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
+        AND metrics.cost_micros > 0
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -314,7 +318,9 @@ class MasterDatePullService {
         // Aggregate data by keyword ID to avoid duplicates
         const keywordMap = new Map();
         
-        rows.forEach((r) => {
+        rows
+            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+            .forEach((r) => {
                 const keywordId = String(r.adGroupCriterion.criterionId);
                 
                 if (!keywordMap.has(keywordId)) {
@@ -381,7 +387,7 @@ class MasterDatePullService {
             metrics.conversions_value
         FROM ad_group_ad
         WHERE segments.date BETWEEN ${dateRange}
-        AND (metrics.cost_micros > 0 OR metrics.clicks > 0)
+        AND metrics.cost_micros > 0
         `;
         
         const rows = await this.executeGAQL(customerId, query);
@@ -389,7 +395,9 @@ class MasterDatePullService {
         // Aggregate data by ad ID to avoid duplicates
         const adMap = new Map();
         
-        rows.forEach((r) => {
+        rows
+            .filter((r) => r.metrics.costMicros > 0 || r.metrics.clicks > 0)
+            .forEach((r) => {
                 const adId = String(r.adGroupAd.ad.id);
                 
                 if (!adMap.has(adId)) {

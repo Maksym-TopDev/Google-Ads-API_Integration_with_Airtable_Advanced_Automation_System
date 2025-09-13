@@ -592,6 +592,7 @@ class MasterDatePullService {
                 'CPC': c.cpc,
                 'Conversions': c.conversions,
                 'Conversion Rate': c.conversionRate,
+                'Conversions Value': c.conversionsValue,
                 'ROAS': c.roas,
                 'Last Updated': c.lastUpdated,
             };
@@ -632,6 +633,7 @@ class MasterDatePullService {
                 'CPC': ag.cpc,
                 'Conversions': ag.conversions,
                 'Conversion Rate': ag.conversionRate,
+                'Conversions Value': ag.conversionsValue,
                 'ROAS': ag.roas,
                 'Last Updated': ag.lastUpdated,
             };
@@ -673,6 +675,7 @@ class MasterDatePullService {
                 'CPC': k.cpc,
                 'Conversions': k.conversions,
                 'Conversion Rate': k.conversionRate,
+                'Conversions Value': k.conversionsValue,
                 'ROAS': k.roas,
                 'Quality Score': k.qualityScore,
                 'Last Updated': k.lastUpdated,
@@ -718,6 +721,7 @@ class MasterDatePullService {
                 'CPC': ad.cpc,
                 'Conversions': ad.conversions,
                 'Conversion Rate': ad.conversionRate,
+                'Conversions Value': ad.conversionsValue,
                 'ROAS': ad.roas,
                 'Last Updated': ad.lastUpdated,
             };

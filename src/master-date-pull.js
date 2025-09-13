@@ -167,7 +167,6 @@ class MasterDatePullService {
             metrics.ctr,
             metrics.cost_micros,
             metrics.conversions,
-            metrics.conversions_from_interactions,
             metrics.conversions_from_interactions_rate,
             metrics.conversions_value
         FROM campaign
@@ -209,7 +208,7 @@ class MasterDatePullService {
                 campaign.impressions += r.metrics.impressions || 0;
                 campaign.clicks += r.metrics.clicks || 0;
                 campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
-                campaign.conversions += r.metrics.conversionsFromInteractions || 0;
+                campaign.conversions += r.metrics.conversions || 0;
                 campaign.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
@@ -218,7 +217,19 @@ class MasterDatePullService {
             campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
             
             // Calculate conversion rate from aggregated data
-            campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0;
+            if (campaign.clicks > 0) {
+                const rawRate = campaign.conversions / campaign.clicks;
+                console.log(`Campaign ${campaign.name}: conversions=${campaign.conversions}, clicks=${campaign.clicks}, rawRate=${rawRate}`);
+                
+                // If rawRate > 1, it means conversions is already a percentage
+                if (rawRate > 1) {
+                    campaign.conversionRate = campaign.conversions; // Use directly if already percentage
+                } else {
+                    campaign.conversionRate = rawRate * 100; // Calculate percentage if raw count
+                }
+            } else {
+                campaign.conversionRate = 0;
+            }
             
             campaign.cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
             campaign.roas = campaign.cost > 0 ? campaign.conversionsValue / campaign.cost : 0;
@@ -240,7 +251,6 @@ class MasterDatePullService {
             metrics.ctr,
             metrics.cost_micros,
             metrics.conversions,
-            metrics.conversions_from_interactions,
             metrics.conversions_from_interactions_rate,
             metrics.conversions_value
         FROM ad_group
@@ -281,7 +291,7 @@ class MasterDatePullService {
                 adGroup.impressions += r.metrics.impressions || 0;
                 adGroup.clicks += r.metrics.clicks || 0;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
-                adGroup.conversions += r.metrics.conversionsFromInteractions || 0;
+                adGroup.conversions += r.metrics.conversions || 0;
                 adGroup.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
@@ -311,7 +321,6 @@ class MasterDatePullService {
             metrics.ctr,
             metrics.cost_micros,
             metrics.conversions,
-            metrics.conversions_from_interactions,
             metrics.conversions_from_interactions_rate,
             metrics.conversions_value
         FROM keyword_view
@@ -356,7 +365,7 @@ class MasterDatePullService {
                 keyword.impressions += r.metrics.impressions || 0;
                 keyword.clicks += r.metrics.clicks || 0;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
-                keyword.conversions += r.metrics.conversionsFromInteractions || 0;
+                keyword.conversions += r.metrics.conversions || 0;
                 keyword.conversionsValue += r.metrics.conversionsValue || 0;
             });
         
@@ -389,7 +398,6 @@ class MasterDatePullService {
             metrics.ctr,
             metrics.cost_micros,
             metrics.conversions,
-            metrics.conversions_from_interactions,
             metrics.conversions_from_interactions_rate,
             metrics.conversions_value
         FROM ad_group_ad
@@ -435,7 +443,7 @@ class MasterDatePullService {
                 ad.impressions += r.metrics.impressions || 0;
                 ad.clicks += r.metrics.clicks || 0;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
-                ad.conversions += r.metrics.conversionsFromInteractions || 0;
+                ad.conversions += r.metrics.conversions || 0;
                 ad.conversionsValue += r.metrics.conversionsValue || 0;
             });
         

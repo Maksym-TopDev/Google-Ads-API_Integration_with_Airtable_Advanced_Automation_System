@@ -241,7 +241,6 @@ class MasterDatePullService {
             
             // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
             // Higher values indicate better performance
-            campaign.performanceScore = campaign.ctr * campaign.conversionRate * campaign.roas * 100;
             
             // Debug logging
             console.log(`Campaign ${campaign.name}:`);
@@ -326,7 +325,6 @@ class MasterDatePullService {
             adGroup.cpa = adGroup.conversions > 0 ? adGroup.cost / adGroup.conversions : 0;
             
             // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
-            adGroup.performanceScore = adGroup.ctr * adGroup.conversionRate * adGroup.roas * 100;
             
             return adGroup;
         });
@@ -412,7 +410,6 @@ class MasterDatePullService {
             keyword.cpa = keyword.conversions > 0 ? keyword.cost / keyword.conversions : 0;
             
             // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
-            keyword.performanceScore = keyword.ctr * keyword.conversionRate * keyword.roas * 100;
             
             return keyword;
         });
@@ -502,20 +499,19 @@ class MasterDatePullService {
             ad.cpa = ad.conversions > 0 ? ad.cost / ad.conversions : 0;
             
             // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
-            ad.performanceScore = ad.ctr * ad.conversionRate * ad.roas * 100;
             
             // Phase 2: Meets Thresholds and Performance Score (Rating) logic
-            // Cost >= $100 and ROAS >= 300% = Performance Score 5, Meets Thresholds = true
-            // Cost >= $100 and ROAS 200-300% = Performance Score 4, Meets Thresholds = false
-            // All other cases = Performance Score 1, Meets Thresholds = false
+            // Cost >= $100 and ROAS >= 300% = Rating 5, Meets Thresholds = true
+            // Cost >= $100 and ROAS 200-300% = Rating 4, Meets Thresholds = false
+            // All other cases = Rating 1, Meets Thresholds = false
             if (ad.cost >= 100 && ad.roas >= 3.0) {
-                ad.performanceScore = 5;
+                ad.performanceScore = 5; // Rating 5
                 ad.meetsThresholds = true;
             } else if (ad.cost >= 100 && ad.roas >= 2.0 && ad.roas < 3.0) {
-                ad.performanceScore = 4;
+                ad.performanceScore = 4; // Rating 4
                 ad.meetsThresholds = false;
             } else {
-                ad.performanceScore = 1;
+                ad.performanceScore = 1; // Rating 1
                 ad.meetsThresholds = false;
             }
             

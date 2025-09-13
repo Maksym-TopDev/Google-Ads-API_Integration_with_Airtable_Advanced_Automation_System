@@ -365,7 +365,7 @@ class MasterDatePullService {
             .forEach((r) => {
                 const keywordId = String(r.adGroupCriterion.criterionId);
                 const adGroupId = r.adGroupCriterion.adGroup?.split('/').pop();
-                const campaignId = r.adGroup.campaign?.split('/').pop();
+                const campaignId = r.campaign.id;
                 // Create composite key: Keyword ID + Ad Group ID + Campaign ID
                 const compositeKey = `${keywordId}_${adGroupId}_${campaignId}`;
                 
@@ -453,7 +453,7 @@ class MasterDatePullService {
             .forEach((r) => {
                 const adId = String(r.adGroupAd.ad.id);
                 const adGroupId = r.adGroupAd.adGroup?.split('/').pop();
-                const campaignId = r.adGroup.campaign?.split('/').pop();
+                const campaignId = r.campaign.id;
                 // Create composite key: Ad ID + Ad Group ID + Campaign ID
                 const compositeKey = `${adId}_${adGroupId}_${campaignId}`;
                 

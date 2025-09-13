@@ -236,11 +236,19 @@ class MasterDatePullService {
             // ROAS: Revenue per dollar spent
             campaign.roas = campaign.cost > 0 ? campaign.conversionsValue / campaign.cost : 0;
             
+            // CPA: Cost per acquisition
+            campaign.cpa = campaign.conversions > 0 ? campaign.cost / campaign.conversions : 0;
+            
+            // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
+            // Higher values indicate better performance
+            campaign.performanceScore = campaign.ctr * campaign.conversionRate * campaign.roas * 100;
+            
             // Debug logging
             console.log(`Campaign ${campaign.name}:`);
-            console.log(`  Impressions: ${campaign.impressions}, Clicks: ${campaign.clicks}, CTR: ${campaign.ctr}%`);
-            console.log(`  Conversions: ${campaign.conversions}, Conversion Rate: ${campaign.conversionRate}%`);
+            console.log(`  Impressions: ${campaign.impressions}, Clicks: ${campaign.clicks}, CTR: ${campaign.ctr}`);
+            console.log(`  Conversions: ${campaign.conversions}, Conversion Rate: ${campaign.conversionRate}`);
             console.log(`  Cost: $${campaign.cost}, Conversions Value: $${campaign.conversionsValue}, ROAS: ${campaign.roas}`);
+            console.log(`  CPC: $${campaign.cpc}, CPA: $${campaign.cpa}, Performance Score: ${campaign.performanceScore}`);
             
             return campaign;
         });
@@ -310,6 +318,13 @@ class MasterDatePullService {
             adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) : 0;
             adGroup.cpc = adGroup.clicks > 0 ? adGroup.cost / adGroup.clicks : 0;
             adGroup.roas = adGroup.cost > 0 ? adGroup.conversionsValue / adGroup.cost : 0;
+            
+            // CPA: Cost per acquisition
+            adGroup.cpa = adGroup.conversions > 0 ? adGroup.cost / adGroup.conversions : 0;
+            
+            // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
+            adGroup.performanceScore = adGroup.ctr * adGroup.conversionRate * adGroup.roas * 100;
+            
             return adGroup;
         });
         
@@ -384,6 +399,13 @@ class MasterDatePullService {
             keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) : 0;
             keyword.cpc = keyword.clicks > 0 ? keyword.cost / keyword.clicks : 0;
             keyword.roas = keyword.cost > 0 ? keyword.conversionsValue / keyword.cost : 0;
+            
+            // CPA: Cost per acquisition
+            keyword.cpa = keyword.conversions > 0 ? keyword.cost / keyword.conversions : 0;
+            
+            // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
+            keyword.performanceScore = keyword.ctr * keyword.conversionRate * keyword.roas * 100;
+            
             return keyword;
         });
         
@@ -462,6 +484,13 @@ class MasterDatePullService {
             ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) : 0;
             ad.cpc = ad.clicks > 0 ? ad.cost / ad.clicks : 0;
             ad.roas = ad.cost > 0 ? ad.conversionsValue / ad.cost : 0;
+            
+            // CPA: Cost per acquisition
+            ad.cpa = ad.conversions > 0 ? ad.cost / ad.conversions : 0;
+            
+            // Performance Score: Custom metric (CTR * Conversion Rate * ROAS * 100)
+            ad.performanceScore = ad.ctr * ad.conversionRate * ad.roas * 100;
+            
             return ad;
         });
         

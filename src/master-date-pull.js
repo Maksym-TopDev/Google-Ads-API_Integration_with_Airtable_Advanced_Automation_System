@@ -176,6 +176,8 @@ class MasterDatePullService {
         
         const rows = await this.executeGAQL(customerId, query);
         
+        console.log(`Total rows returned for campaigns: ${rows.length}`);
+        
         // Aggregate data by campaign ID to avoid duplicates
         const campaignMap = new Map();
         
@@ -185,6 +187,7 @@ class MasterDatePullService {
                 const campaignId = String(r.campaign.id);
                 
                 if (!campaignMap.has(campaignId)) {
+                    console.log(`First time seeing campaign ${r.campaign.name} (ID: ${campaignId})`);
                     campaignMap.set(campaignId, {
                         id: campaignId,
                         name: r.campaign.name,
@@ -205,8 +208,15 @@ class MasterDatePullService {
                 }
                 
                 const campaign = campaignMap.get(campaignId);
-                campaign.impressions += r.metrics.impressions || 0;
-                campaign.clicks += r.metrics.clicks || 0;
+                
+                // Debug individual record values
+                console.log(`Adding data for campaign ${r.campaign.name}:`);
+                console.log(`  Impressions: ${r.metrics.impressions}, Clicks: ${r.metrics.clicks}`);
+                console.log(`  Cost micros: ${r.metrics.costMicros}, Conversions: ${r.metrics.conversions}`);
+                console.log(`  Running totals - Impressions: ${campaign.impressions + ((r.metrics.impressions || 0) / 100)}, Clicks: ${campaign.clicks + ((r.metrics.clicks || 0) / 100)}`);
+                
+                campaign.impressions += (r.metrics.impressions || 0) / 100;
+                campaign.clicks += (r.metrics.clicks || 0) / 100;
                 campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 campaign.conversions += r.metrics.conversions || 0;
                 campaign.conversionsValue += r.metrics.conversionsValue || 0;
@@ -287,8 +297,8 @@ class MasterDatePullService {
                 }
                 
                 const adGroup = adGroupMap.get(adGroupId);
-                adGroup.impressions += r.metrics.impressions || 0;
-                adGroup.clicks += r.metrics.clicks || 0;
+                adGroup.impressions += (r.metrics.impressions || 0) / 100;
+                adGroup.clicks += (r.metrics.clicks || 0) / 100;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 adGroup.conversions += r.metrics.conversions || 0;
                 adGroup.conversionsValue += r.metrics.conversionsValue || 0;
@@ -361,8 +371,8 @@ class MasterDatePullService {
                 }
                 
                 const keyword = keywordMap.get(keywordId);
-                keyword.impressions += r.metrics.impressions || 0;
-                keyword.clicks += r.metrics.clicks || 0;
+                keyword.impressions += (r.metrics.impressions || 0) / 100;
+                keyword.clicks += (r.metrics.clicks || 0) / 100;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 keyword.conversions += r.metrics.conversions || 0;
                 keyword.conversionsValue += r.metrics.conversionsValue || 0;
@@ -439,8 +449,8 @@ class MasterDatePullService {
                 }
                 
                 const ad = adMap.get(adId);
-                ad.impressions += r.metrics.impressions || 0;
-                ad.clicks += r.metrics.clicks || 0;
+                ad.impressions += (r.metrics.impressions || 0) / 100;
+                ad.clicks += (r.metrics.clicks || 0) / 100;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 ad.conversions += r.metrics.conversions || 0;
                 ad.conversionsValue += r.metrics.conversionsValue || 0;

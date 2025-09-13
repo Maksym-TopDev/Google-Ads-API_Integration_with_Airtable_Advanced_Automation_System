@@ -213,10 +213,10 @@ class MasterDatePullService {
                 console.log(`Adding data for campaign ${r.campaign.name}:`);
                 console.log(`  Impressions: ${r.metrics.impressions}, Clicks: ${r.metrics.clicks}`);
                 console.log(`  Cost micros: ${r.metrics.costMicros}, Conversions: ${r.metrics.conversions}`);
-                console.log(`  Running totals - Impressions: ${campaign.impressions + ((r.metrics.impressions || 0) / 100)}, Clicks: ${campaign.clicks + ((r.metrics.clicks || 0) / 100)}`);
+                console.log(`  Running totals - Impressions: ${campaign.impressions + ((r.metrics.impressions || 0) / 100)}, Clicks: ${campaign.clicks + (r.metrics.clicks || 0)}`);
                 
                 campaign.impressions += (r.metrics.impressions || 0) / 100;
-                campaign.clicks += (r.metrics.clicks || 0) / 100;
+                campaign.clicks += r.metrics.clicks || 0;
                 campaign.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 campaign.conversions += r.metrics.conversions || 0;
                 campaign.conversionsValue += r.metrics.conversionsValue || 0;
@@ -227,8 +227,8 @@ class MasterDatePullService {
             // CTR: Calculate from aggregated data
             campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
             
-            // Conversion Rate: Calculate from aggregated data
-            campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0;
+            // Conversion Rate: Calculate from aggregated data (no multiplication by 100)
+            campaign.conversionRate = campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) : 0;
             
             // CPC: Cost per click
             campaign.cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
@@ -298,7 +298,7 @@ class MasterDatePullService {
                 
                 const adGroup = adGroupMap.get(adGroupId);
                 adGroup.impressions += (r.metrics.impressions || 0) / 100;
-                adGroup.clicks += (r.metrics.clicks || 0) / 100;
+                adGroup.clicks += r.metrics.clicks || 0;
                 adGroup.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 adGroup.conversions += r.metrics.conversions || 0;
                 adGroup.conversionsValue += r.metrics.conversionsValue || 0;
@@ -307,7 +307,7 @@ class MasterDatePullService {
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAdGroups = Array.from(adGroupMap.values()).map(adGroup => {
             adGroup.ctr = adGroup.impressions > 0 ? (adGroup.clicks / adGroup.impressions) * 100 : 0;
-            adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) * 100 : 0;
+            adGroup.conversionRate = adGroup.clicks > 0 ? (adGroup.conversions / adGroup.clicks) : 0;
             adGroup.cpc = adGroup.clicks > 0 ? adGroup.cost / adGroup.clicks : 0;
             adGroup.roas = adGroup.cost > 0 ? adGroup.conversionsValue / adGroup.cost : 0;
             return adGroup;
@@ -372,7 +372,7 @@ class MasterDatePullService {
                 
                 const keyword = keywordMap.get(keywordId);
                 keyword.impressions += (r.metrics.impressions || 0) / 100;
-                keyword.clicks += (r.metrics.clicks || 0) / 100;
+                keyword.clicks += r.metrics.clicks || 0;
                 keyword.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 keyword.conversions += r.metrics.conversions || 0;
                 keyword.conversionsValue += r.metrics.conversionsValue || 0;
@@ -381,7 +381,7 @@ class MasterDatePullService {
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedKeywords = Array.from(keywordMap.values()).map(keyword => {
             keyword.ctr = keyword.impressions > 0 ? (keyword.clicks / keyword.impressions) * 100 : 0;
-            keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) * 100 : 0;
+            keyword.conversionRate = keyword.clicks > 0 ? (keyword.conversions / keyword.clicks) : 0;
             keyword.cpc = keyword.clicks > 0 ? keyword.cost / keyword.clicks : 0;
             keyword.roas = keyword.cost > 0 ? keyword.conversionsValue / keyword.cost : 0;
             return keyword;
@@ -450,7 +450,7 @@ class MasterDatePullService {
                 
                 const ad = adMap.get(adId);
                 ad.impressions += (r.metrics.impressions || 0) / 100;
-                ad.clicks += (r.metrics.clicks || 0) / 100;
+                ad.clicks += r.metrics.clicks || 0;
                 ad.cost += r.metrics.costMicros ? r.metrics.costMicros / 1000000 : 0;
                 ad.conversions += r.metrics.conversions || 0;
                 ad.conversionsValue += r.metrics.conversionsValue || 0;
@@ -459,7 +459,7 @@ class MasterDatePullService {
         // Calculate CTR, conversion rate, CPC, and ROAS from aggregated data
         const aggregatedAds = Array.from(adMap.values()).map(ad => {
             ad.ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
-            ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) * 100 : 0;
+            ad.conversionRate = ad.clicks > 0 ? (ad.conversions / ad.clicks) : 0;
             ad.cpc = ad.clicks > 0 ? ad.cost / ad.clicks : 0;
             ad.roas = ad.cost > 0 ? ad.conversionsValue / ad.cost : 0;
             return ad;

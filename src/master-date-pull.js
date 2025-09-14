@@ -247,7 +247,7 @@ class MasterDatePullService {
             console.log(`  Impressions: ${campaign.impressions}, Clicks: ${campaign.clicks}, CTR: ${campaign.ctr}`);
             console.log(`  Conversions: ${campaign.conversions}, Conversion Rate: ${campaign.conversionRate}`);
             console.log(`  Cost: $${campaign.cost}, Conversions Value: $${campaign.conversionsValue}, ROAS: ${campaign.roas}`);
-            console.log(`  CPC: $${campaign.cpc}, CPA: $${campaign.cpa}, Performance Score: ${campaign.performanceScore}`);
+            console.log(`  CPC: $${campaign.cpc}, CPA: $${campaign.cpa}`);
             
             return campaign;
         });
@@ -477,6 +477,8 @@ class MasterDatePullService {
                         conversionsValue: 0,
                         roas: 0,
                         lastUpdated: new Date().toISOString(),
+                        performanceScore: 0,
+                        meetsThresholds: false,
                     });
                 }
                 
@@ -514,6 +516,7 @@ class MasterDatePullService {
                 ad.performanceScore = 1; // Rating 1
                 ad.meetsThresholds = false;
             }
+            console.log(`  Performance Score: ${ad.performanceScore}`);
             
             return ad;
         });

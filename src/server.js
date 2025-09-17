@@ -2,6 +2,7 @@ const http = require('http');
 const url = require('url');
 require('dotenv').config();
 const { MasterDatePullService } = require('./master-date-pull');
+const { AdGenerationService } = require('./ad-generation');
 
 function send(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -35,6 +36,43 @@ const server = http.createServer(async (req, res) => {
       const service = new MasterDatePullService();
       const result = await service.pullWithDateRange(start, end);
       return send(res, 200, { success: true, ...result });
+    } catch (e) {
+      const message = e?.response?.data || e?.message || 'Unknown error';
+      return send(res, 500, { success: false, error: message });
+    }
+  }
+
+  if (req.method === 'POST' && parsed.pathname === '/api/generate-ad') {
+    try {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const { adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl } = data;
+
+          if (!adId || !campaignId || !adGroupId) {
+            return send(res, 400, { success: false, error: 'Missing required fields: adId, campaignId, adGroupId' });
+          }
+
+          const service = new AdGenerationService();
+          const result = await service.generateAdVariants({
+            adId,
+            campaignId,
+            adGroupId,
+            campaignName,
+            adGroupName,
+            finalUrl
+          });
+
+          return send(res, 200, { success: true, ...result });
+        } catch (parseError) {
+          return send(res, 400, { success: false, error: 'Invalid JSON body' });
+        }
+      });
     } catch (e) {
       const message = e?.response?.data || e?.message || 'Unknown error';
       return send(res, 500, { success: false, error: message });

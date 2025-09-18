@@ -52,7 +52,7 @@ const server = http.createServer(async (req, res) => {
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
-          const { adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl } = data;
+          const { adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl, performanceScore } = data;
 
           if (!adId || !campaignId || !adGroupId) {
             return send(res, 400, { success: false, error: 'Missing required fields: adId, campaignId, adGroupId' });
@@ -65,7 +65,8 @@ const server = http.createServer(async (req, res) => {
             adGroupId,
             campaignName,
             adGroupName,
-            finalUrl
+            finalUrl,
+            performanceScore
           });
 
           return send(res, 200, { success: true, ...result });

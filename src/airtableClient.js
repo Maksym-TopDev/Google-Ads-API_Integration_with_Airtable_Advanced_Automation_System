@@ -159,6 +159,36 @@ class AirtableClient {
 		}
 		return out;
 	}
+
+	async getRecords(tableName, options = {}) {
+		await this.checkRateLimit();
+		const table = this.base(tableName);
+		const records = [];
+		
+		await table.select(options).eachPage((pageRecords, fetchNextPage) => {
+			records.push(...pageRecords);
+			fetchNextPage();
+		});
+		
+		this.rateLimiter.requests++;
+		return records;
+	}
+
+	async createRecords(tableName, records) {
+		await this.checkRateLimit();
+		if (!records?.length) return [];
+		const table = this.base(tableName);
+		const out = [];
+		
+		for (let i = 0; i < records.length; i += 10) {
+			const batch = records.slice(i, i + 10);
+			const created = await table.create(batch, { typecast: true });
+			out.push(...created);
+			this.rateLimiter.requests++;
+			await this.checkRateLimit();
+		}
+		return out;
+	}
 }
 
 module.exports = { AirtableClient };

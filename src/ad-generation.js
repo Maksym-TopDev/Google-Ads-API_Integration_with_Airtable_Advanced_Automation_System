@@ -10,26 +10,23 @@ class AdGenerationService {
         this.airtable = new AirtableClient();
     }
 
-    async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl }) {
+    async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl, performanceScore }) {
         try {
-            console.log(`Starting ad generation for Ad ID: ${adId}, Campaign: ${campaignName}, Ad Group: ${adGroupName}`);
+            console.log(`Starting ad generation for Ad ID: ${adId}, Performance Score: ${performanceScore}`);
 
-            // 1. Get performance data for the source ad
-            const performanceData = await this.getAdPerformance(adId, campaignId, adGroupId);
+            // 1. Get source ad content for inspiration
+            const sourceAd = await this.getSourceAdContent(adId);
             
-            // 2. Get source ad content for inspiration
-            const sourceAd = await this.getSourceAdContent(adId, campaignId, adGroupId);
-            
-            // 3. Generate new variants using OpenAI
+            // 2. Generate new variants using OpenAI
             const variants = await this.generateWithOpenAI({
-                performanceData,
+                performanceScore,
                 sourceAd,
                 campaignName,
                 adGroupName,
                 finalUrl
             });
 
-            // 4. Create Ad Generator records
+            // 3. Create Ad Generator records
             const adGeneratorRecords = await this.createAdGeneratorRecords({
                 campaignId,
                 adGroupId,
@@ -38,16 +35,15 @@ class AdGenerationService {
                 finalUrl,
                 variants,
                 sourceAdId: adId,
-                performanceScore: performanceData.performanceScore
+                performanceScore
             });
 
-            // 5. Queue for upload
+            // 4. Queue for upload
             const uploadQueueRecords = await this.createUploadQueueRecords({
                 campaignId,
                 adGroupId,
                 variants,
-                finalUrl,
-                adGeneratorRecords
+                finalUrl
             });
 
             console.log(`Generated ${variants.length} variants, created ${adGeneratorRecords.length} Ad Generator records, ${uploadQueueRecords.length} Upload Queue records`);
@@ -59,7 +55,8 @@ class AdGenerationService {
                 variants: variants.map(v => ({
                     headlines: v.headlines,
                     descriptions: v.descriptions,
-                    paths: v.paths
+                    path1: v.path1,
+                    path2: v.path2
                 }))
             };
 
@@ -69,42 +66,8 @@ class AdGenerationService {
         }
     }
 
-    async getAdPerformance(adId, campaignId, adGroupId) {
-        try {
-            // Get performance data from Airtable Ads table
-            const ads = await this.airtable.getRecords('Ads', {
-                filterByFormula: `{Ad ID} = ${adId}`
-            });
 
-            if (!ads || ads.length === 0) {
-                throw new Error(`Ad with ID ${adId} not found`);
-            }
-
-            const ad = ads[0];
-            const ctr = parseFloat(ad.fields['CTR'] || 0);
-            const roas = parseFloat(ad.fields['ROAS'] || 0);
-            const conversionRate = parseFloat(ad.fields['Conversion Rate'] || 0);
-
-            // Calculate performance score (CTR + ROAS + Conversion Rate)
-            const performanceScore = ctr + roas + conversionRate;
-
-            return {
-                ctr,
-                roas,
-                conversionRate,
-                performanceScore,
-                impressions: parseInt(ad.fields['Impressions'] || 0),
-                clicks: parseInt(ad.fields['Clicks'] || 0),
-                cost: parseFloat(ad.fields['Cost'] || 0),
-                conversions: parseInt(ad.fields['Conversions'] || 0)
-            };
-        } catch (error) {
-            console.error('Error getting ad performance:', error);
-            throw error;
-        }
-    }
-
-    async getSourceAdContent(adId, campaignId, adGroupId) {
+    async getSourceAdContent(adId) {
         try {
             const ads = await this.airtable.getRecords('Ads', {
                 filterByFormula: `{Ad ID} = ${adId}`
@@ -128,10 +91,10 @@ class AdGenerationService {
         }
     }
 
-    async generateWithOpenAI({ performanceData, sourceAd, campaignName, adGroupName, finalUrl }) {
+    async generateWithOpenAI({ performanceScore, sourceAd, campaignName, adGroupName, finalUrl }) {
         try {
             const prompt = this.buildPrompt({
-                performanceData,
+                performanceScore,
                 sourceAd,
                 campaignName,
                 adGroupName,
@@ -163,7 +126,7 @@ class AdGenerationService {
         }
     }
 
-    buildPrompt({ performanceData, sourceAd, campaignName, adGroupName, finalUrl }) {
+    buildPrompt({ performanceScore, sourceAd, campaignName, adGroupName, finalUrl }) {
         return `
 Generate 3 new Google Ads variants based on this high-performing ad:
 
@@ -171,11 +134,7 @@ CAMPAIGN: ${campaignName}
 AD GROUP: ${adGroupName}
 FINAL URL: ${finalUrl}
 
-PERFORMANCE DATA:
-- CTR: ${performanceData.ctr}%
-- ROAS: ${performanceData.roas}
-- Conversion Rate: ${performanceData.conversionRate}%
-- Performance Score: ${performanceData.performanceScore}
+PERFORMANCE SCORE: ${performanceScore}
 
 SOURCE AD (for inspiration):
 Headlines: ${sourceAd.headlines}
@@ -258,12 +217,9 @@ FORMAT YOUR RESPONSE AS JSON:
                     'Final URL': finalUrl,
                     'Generated By': 'OpenAI GPT',
                     'Validation Status': this.validateAdCopy(variant) ? '✅ Ready' : '❌ Error',
-                    'Send to Queue?': true,
                     'Path1': variant.path1 || '',
                     'Path2': variant.path2 || '',
                     'Generation Status': 'Generated',
-                    'Approval Status': 'Approved', // Auto-approve as per client requirements
-                    'Policy Check': true,
                     'Created At': new Date().toISOString()
                 }
             }));
@@ -278,19 +234,16 @@ FORMAT YOUR RESPONSE AS JSON:
         }
     }
 
-    async createUploadQueueRecords({ campaignId, adGroupId, variants, finalUrl, adGeneratorRecords }) {
+    async createUploadQueueRecords({ campaignId, adGroupId, variants, finalUrl }) {
         try {
             const records = variants.map((variant, index) => ({
                 fields: {
                     'Campaign ID': campaignId,
                     'Ad Group ID': adGroupId,
-                    'Headlines': JSON.stringify(variant.headlines),
-                    'Descriptions': JSON.stringify(variant.descriptions),
+                    'Headlines': (variant.headlines || []).join(' | '),
+                    'Descriptions': (variant.descriptions || []).join(' | '),
                     'Final URL': finalUrl,
                     'Status': 'Pending',
-                    'Priority': 1,
-                    'Retry Count': 0,
-                    'Max Retries': 3,
                     'Path1': variant.path1 || '',
                     'Path2': variant.path2 || '',
                     'Created At': new Date().toISOString()

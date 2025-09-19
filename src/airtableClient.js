@@ -1,5 +1,4 @@
-const Airtable = require('airtable');
-require('dotenv').config();
+import Airtable from 'airtable';
 
 class AirtableClient {
 	constructor() {
@@ -191,4 +190,4 @@ class AirtableClient {
 	}
 }
 
-module.exports = { AirtableClient };
+export { AirtableClient };

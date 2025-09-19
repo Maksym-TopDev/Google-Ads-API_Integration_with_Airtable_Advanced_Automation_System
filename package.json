@@ -1,20 +1,30 @@
 {
-  "name": "google-ads-automation",
-  "version": "0.1.0",
-  "description": "MCC to Airtable on-demand pull Phase 1",
-  "main": "index.js",
+  "name": "google-ads-airtable",
+  "version": "1.0.0",
+  "description": "Google Ads Airtable Integration with AI Ad Generation",
+  "main": "src/server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo No tests",
-    "fetch": "node src/fetch.js",
-    "master-pull": "node src/master-date-pull.js"
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "build": "echo 'No build step required'",
+    "vercel-build": "echo 'No build step required'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "axios": "^1.11.0",
-    "dotenv": "^17.2.2",
     "airtable": "^0.12.2",
-    "openai": "^4.20.1"
-  }
+    "dotenv": "^17.2.2",
+    "openai": "^4.67.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "google-ads",
+    "airtable",
+    "ai",
+    "ad-generation",
+    "vercel"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }

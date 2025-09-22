@@ -1,10 +1,8 @@
 import { AirtableClient } from './airtableClient.js';
-import { StatusManager } from './status-manager.js';
 
 export class UploadQueueService {
   constructor() {
     this.airtable = new AirtableClient();
-    this.statusManager = new StatusManager();
   }
 
   async createUploadQueueFromAdGenerator(adGeneratorRecordId) {
@@ -55,9 +53,6 @@ export class UploadQueueService {
       const createdRecords = await this.airtable.createRecords('Upload Queue', [uploadQueueRecord]);
       console.log(`Created Upload Queue record: ${createdRecords[0].id}`);
 
-      // Update the Ad Generator record to mark it as sent to queue
-      await this.statusManager.updateToUploadStatus(adGeneratorRecordId, 'Sent to Queue');
-
       return {
         success: true,
         uploadQueueRecordId: createdRecords[0].id,
@@ -78,6 +73,18 @@ export class UploadQueueService {
       return records.length > 0 ? records[0] : null;
     } catch (error) {
       console.error('Error fetching Ad Generator record:', error);
+      throw error;
+    }
+  }
+
+  async updateAdGeneratorRecord(recordId, fields) {
+    try {
+      await this.airtable.updateRecords('Ad Generator', [{
+        id: recordId,
+        fields: fields
+      }]);
+    } catch (error) {
+      console.error('Error updating Ad Generator record:', error);
       throw error;
     }
   }

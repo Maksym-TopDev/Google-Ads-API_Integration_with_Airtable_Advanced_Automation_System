@@ -6,11 +6,11 @@ const table = base.getTable('Ads');
 // Get inputs from Automation → Run script → Input variables
 // Set these in the automation:
 // - recordId: {{trigger.record.id}}
-// - apiUrl:   https://google-ads-airtable.vercel.app/api/generate-ad
+// - apiUrl:   https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad
 const { recordId, apiUrl } = input.config();
 
 // Fallback URL if apiUrl is not provided
-const fallbackUrl = "https://google-ads-airtable.vercel.app/api/generate-ad";
+const fallbackUrl = "https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad";
 const finalApiUrl = apiUrl || fallbackUrl;
 
 if (!recordId) {
@@ -83,8 +83,11 @@ try {
         console.log(`- Ad Generator records: ${result.adGeneratorRecords || 'N/A'}`);
         
         // Update the record with generation status (only if fields exist)
-        
-        console.log("Going well");
+        await safeUpdate(table, recordId, {
+            'Last Generation Status': 'Generated',
+            'Last Generation Time': new Date().toISOString(),
+            'Variants Generated': result.variantsGenerated || 0
+        });
         
     } else {
         const errMsg = result?.error || `HTTP ${response.status}`;
@@ -92,8 +95,11 @@ try {
         console.log(errMsg);
         
         // Update record with error status (only if fields exist)
-        
-        console.log("Going Error");
+        await safeUpdate(table, recordId, {
+            'Last Generation Status': 'Failed',
+            'Last Generation Time': new Date().toISOString(),
+            'Generation Error': errMsg
+        });
     }
 } catch (error) {
     console.log('Script error:');
@@ -101,8 +107,11 @@ try {
     
     // Update record with error status (only if fields exist)
     try {
-        
-        console.log("Going Error");
+        await safeUpdate(table, recordId, {
+            'Last Generation Status': 'Script Error',
+            'Last Generation Time': new Date().toISOString(),
+            'Generation Error': error.message
+        });
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);
     }

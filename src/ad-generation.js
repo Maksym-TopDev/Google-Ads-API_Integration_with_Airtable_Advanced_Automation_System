@@ -1,12 +1,10 @@
 // Phase 3: AI Ad Generation Service for Vercel
 import { AirtableClient } from './airtableClient.js';
-import { StatusManager } from './status-manager.js';
 import OpenAI from 'openai';
 
 export class AdGenerationService {
   constructor() {
     this.airtable = new AirtableClient();
-    this.statusManager = new StatusManager();
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
@@ -45,9 +43,6 @@ export class AdGenerationService {
         finalUrl
       });
 
-      // 6. Update the source ad record with generation status
-      await this.statusManager.updateGenerateStatus(adId, 'Generated');
-
       console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records`);
 
       return {
@@ -58,14 +53,6 @@ export class AdGenerationService {
 
     } catch (error) {
       console.error('Error in generateAdVariants:', error);
-      
-      // Update source ad with error status
-      try {
-        await this.statusManager.updateGenerateStatus(adId, 'Failed');
-      } catch (updateError) {
-        console.error('Error updating source ad status on failure:', updateError);
-      }
-      
       throw error;
     }
   }
@@ -352,7 +339,6 @@ export class AdGenerationService {
       throw error;
     }
   }
-
 
 
   validateAdCopy(variant) {

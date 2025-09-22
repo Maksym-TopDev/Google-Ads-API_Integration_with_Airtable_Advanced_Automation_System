@@ -130,24 +130,46 @@ export class AdGenerationService {
         targetKeywords
       });
 
+      // First attempt: strict schema-first prompt
       const response = await this.openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4',
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert Google Ads copywriter. Generate high-performing ad copy based on successful examples and performance data. Always follow Google Ads character limits: headlines max 30 characters, descriptions max 90 characters.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: 'You are an expert Google Ads copywriter. Return only valid JSON that matches the requested schema.' },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 1000,
+        temperature: Number(process.env.OPENAI_TEMPERATURE || 0.35),
+        max_tokens: Math.min(Number(process.env.OPENAI_MAX_TOKENS || 900), 900),
       });
 
-      const content = response.choices[0].message.content;
-      return this.parseOpenAIResponse(content);
+      let content = response.choices?.[0]?.message?.content || '';
+      try {
+        return this.parseOpenAIResponse(content);
+      } catch (parseErr) {
+        // Log preview for diagnostics (no PII)
+        const preview = content.slice(0, 600);
+        console.warn('Initial parse failed. Preview of raw content:', preview);
+
+        // One-shot reformat-only retry
+        const reformatPrompt = [
+          'Reformat the text below into EXACTLY this JSON schema and return ONLY JSON with no markdown or code fences:',
+          '{"variants":[{"headlines":["h1","h2","h3"],"descriptions":["d1","d2"],"path1":"string","path2":"string"}]}',
+          'Text to convert:',
+          preview
+        ].join('\n');
+
+        const retry = await this.openai.chat.completions.create({
+          model: process.env.OPENAI_MODEL || 'gpt-4',
+          messages: [
+            { role: 'system', content: 'Return only valid JSON.' },
+            { role: 'user', content: reformatPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: 400,
+        });
+
+        content = retry.choices?.[0]?.message?.content || '';
+        return this.parseOpenAIResponse(content);
+      }
 
     } catch (error) {
       console.error('OpenAI generation error:', error);
@@ -156,89 +178,43 @@ export class AdGenerationService {
   }
 
   buildPrompt({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd, targetKeywords }) {
-    const sourceHeadlines = sourceAd?.headlines || '';
-    const sourceDescriptions = sourceAd?.descriptions || '';
-    const sourcePath1 = sourceAd?.path1 || '';
-    const sourcePath2 = sourceAd?.path2 || '';
-    const keywordsList = (targetKeywords || []).join(', ');
+    const src = {
+      headlines: sourceAd?.headlines || '',
+      descriptions: sourceAd?.descriptions || '',
+      path1: sourceAd?.path1 || '',
+      path2: sourceAd?.path2 || ''
+    };
+    const keywords = (targetKeywords || []).join(', ');
 
-    const prompt = `Generate 3 optimized Google Ads variants based on the high-performing source ad(s), destination URL, and target keywords below.
-Return ONLY a single JSON object as the response. Do not include any commentary, markdown, or code fences. The JSON must match the specified schema exactly.
+    const lines = [];
+    lines.push('Return ONLY a single JSON object. No extra text, no markdown, no code fences.');
+    lines.push('Schema: {"variants":[{"headlines":["h1","h2","h3"],"descriptions":["d1","d2"],"path1":"string","path2":"string"}]}');
+    lines.push('Constraints: headlines<=30 chars each; descriptions<=90 chars each; path1/path2<=15 chars each. Policy-compliant; no unverifiable claims; avoid clickbait.');
+    lines.push('Inputs:');
+    lines.push(`destination_url: ${finalUrl || ''}`);
+    lines.push(`campaign_name: ${campaignName || ''}`);
+    lines.push(`ad_group_name: ${adGroupName || ''}`);
+    lines.push(`performance_score: ${performanceScore || 0}`);
+    lines.push(`source_headlines: ${src.headlines}`);
+    lines.push(`source_descriptions: ${src.descriptions}`);
+    lines.push(`source_path1: ${src.path1}`);
+    lines.push(`source_path2: ${src.path2}`);
+    lines.push(`target_keywords: ${keywords}`);
+    lines.push('Produce 3 variants that adapt to the destination page intent.');
 
-DESTINATION URL ANALYSIS
-1) Visit and analyze: ${finalUrl}
-2) Detect site type (choose one): E-commerce/Direct Sales; Lead Generation; Review/Comparison; Service Providers; Content/Information.
-3) Adapt messaging based on detected site type:
-- E-commerce: emphasize product benefits, pricing, promos, guarantees, shipping/returns. Use “Buy/Shop/Save/Get”.
-- Lead Gen: emphasize value/expertise/outcomes, “Learn/Discover/Find Out”, free consults/quotes.
-- Review: emphasize authority/independence, comparisons, testing methodology, “Best/Top/#1”.
-- Services: emphasize expertise, results, certifications, local presence, outcomes.
-- Content: emphasize insights, completeness, expert angle, recency.
-
-SOURCE AD ANALYSIS
-Use the high-performing source ad(s) below:
-- Headlines: ${sourceHeadlines}
-- Descriptions: ${sourceDescriptions}
-- Paths: ${sourcePath1} / ${sourcePath2}
-- Performance Score: ${performanceScore}
-
-ADAPTIVE VARIANT STRATEGIES
-Match the detected site type. Create 3 distinct variants:
-- E-commerce: 1) Product-focused 2) Offer-focused 3) Urgency-focused
-- Lead Gen: 1) Problem-solution 2) Expertise/authority 3) Free value/consult
-- Review: 1) Authority 2) Comparison 3) Result/#1 pick
-- Services: 1) Experience/credibility 2) Results/outcomes 3) Local/availability
-- Content: 1) Educational value 2) Comprehensive resource 3) Expert insight
-
-FORMAT REQUIREMENTS
-Technical:
-- Exactly 3 headlines per variant (≤30 chars each).
-- Exactly 2 descriptions per variant (≤90 chars each).
-- Suggest Path1 and Path2 (≤15 chars each) that reflect the URL structure.
-- Policy compliant; avoid unverifiable claims; no clickbait.
-
-Content:
-- Headlines: front-load primary keywords and value; include specifics (numbers/percentages) where possible; tone fits site type.
-- Descriptions: expand headline promise; include trust signals appropriate to site type (shipping/returns, independent testing, certifications, local presence, expert-authored/up-to-date for content); end with a site-appropriate CTA.
-- Display paths mirror key URL/category terms and reinforce the message.
-
-QUALITY CHECKLIST
-- Correct site type and adapted strategy
-- Character limits respected
-- No repetitive language across variants
-- Clear value propositions and trust signals
-- Natural keyword integration
-- CTAs match page intent; mobile-friendly
-
-OUTPUT FORMAT
-DETECTED SITE TYPE: [Site Type]
-ADAPTED STRATEGY: [Brief explanation of the chosen approach]
-
-VARIANT 1: [Strategy description]
-Headlines: [H1] | [H2] | [H3]
-Descriptions: [D1] | [D2]
-Paths: [Path1] / [Path2]
-
-VARIANT 2: [Strategy description]
-Headlines: [H1] | [H2] | [H3]
-Descriptions: [D1] | [D2]
-Paths: [Path1] / [Path2]
-
-VARIANT 3: [Strategy description]
-Headlines: [H1] | [H2] | [H3]
-Descriptions: [D1] | [D2]
-Paths: [Path1] / [Path2]
-
-INPUTS
-DESTINATION URL: ${finalUrl}
-TARGET KEYWORDS: ${keywordsList}
-`;
-
-    return prompt;
+    return lines.join('\n');
   }
 
   parseOpenAIResponse(content) {
     try {
+      if (!content || typeof content !== 'string') {
+        throw new Error('Empty response content');
+      }
+      // Strip common code fences/backticks
+      content = content.trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '');
       // 1) Try direct JSON parse
       let parsed;
       try {

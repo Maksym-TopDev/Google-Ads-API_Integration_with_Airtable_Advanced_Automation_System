@@ -143,7 +143,9 @@ export class AdGenerationService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 1000,
+        // Hint the model to return a strict JSON object when supported
+        response_format: { type: 'json_object' }
       });
 
       const content = response.choices[0].message.content;
@@ -239,19 +241,51 @@ TARGET KEYWORDS: ${keywordsList}
 
   parseOpenAIResponse(content) {
     try {
-      // Extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in OpenAI response');
+      // 1) Try direct JSON parse
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (_) {
+        // 2) Fallback: extract the first JSON object or variants array
+        const variantsArrayMatch = content.match(/"variants"\s*:\s*(\[[\s\S]*?\])/);
+        if (variantsArrayMatch) {
+          const variantsOnly = variantsArrayMatch[1];
+          const variantsParsed = JSON.parse(variantsOnly);
+          if (Array.isArray(variantsParsed)) return variantsParsed;
+        }
+        const objectMatch = content.match(/\{[\s\S]*\}/);
+        if (!objectMatch) {
+          throw new Error('No JSON found in OpenAI response');
+        }
+        parsed = JSON.parse(objectMatch[0]);
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      if (!parsed.variants || !Array.isArray(parsed.variants)) {
-        throw new Error('Invalid response format: missing variants array');
+      // 3) Normalize possible shapes
+      if (parsed && Array.isArray(parsed)) {
+        // If model returned array at root, treat as variants
+        return parsed;
+      }
+      if (parsed && Array.isArray(parsed.variants)) {
+        return parsed.variants;
       }
 
-      return parsed.variants;
+      // 4) Attempt to reconstruct variants from alternative keys (VARIANT 1/2/3)
+      const variantKeys = Object.keys(parsed || {}).filter(k => /variant\s*\d+/i.test(k));
+      if (variantKeys.length) {
+        const variants = variantKeys
+          .sort()
+          .map(k => parsed[k])
+          .filter(v => v && Array.isArray(v.headlines) && Array.isArray(v.descriptions))
+          .map(v => ({
+            headlines: v.headlines.slice(0, 3),
+            descriptions: v.descriptions.slice(0, 2),
+            path1: (v.path1 || '').toString().slice(0, 15),
+            path2: (v.path2 || '').toString().slice(0, 15)
+          }));
+        if (variants.length) return variants;
+      }
+
+      throw new Error('Invalid response format: missing variants array');
 
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);

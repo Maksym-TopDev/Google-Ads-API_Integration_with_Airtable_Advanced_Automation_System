@@ -1,11 +1,11 @@
 // Vercel serverless function: GET /api/pull-data?start=YYYY-MM-DD&end=YYYY-MM-DD&token=... (optional)
-const { MasterDatePullService } = require('../src/master-date-pull');
+import { MasterDatePullService } from '../src/master-date-pull.js';
 
 function isValidDateStr(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(v);
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Enable CORS for Airtable scripts
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

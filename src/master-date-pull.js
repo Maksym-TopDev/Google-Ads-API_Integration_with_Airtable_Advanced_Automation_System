@@ -1,6 +1,7 @@
-const axios = require('axios');
-const Airtable = require('airtable');
-require('dotenv').config();
+import axios from 'axios';
+import Airtable from 'airtable';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v21';
 
@@ -874,11 +875,12 @@ async function main() {
     await service.pullAllData();
 }
 
-if (require.main === module) {
+// ES module equivalent of require.main === module
+if (import.meta.url === `file://${process.argv[1]}`) {
     main().catch((error) => {
         console.error('Fatal error:', error);
         process.exit(1);
     });
 }
 
-module.exports = { MasterDatePullService };
+export { MasterDatePullService };

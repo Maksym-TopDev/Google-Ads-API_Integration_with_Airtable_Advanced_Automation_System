@@ -10,7 +10,7 @@ export class AdGenerationService {
     });
   }
 
-  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl, toUpload = false }) {
+  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl }) {
     try {
       console.log(`Starting ad generation for Ad ID: ${adId}`);
 
@@ -43,15 +43,12 @@ export class AdGenerationService {
         finalUrl
       });
 
-      let uploadQueueRecords = [];
-      if (toUpload) {
-        uploadQueueRecords = await this.createUploadQueueRecords({
-          campaignId,
-          adGroupId,
-          variants: validatedVariants,
-          finalUrl
-        });
-      }
+      const uploadQueueRecords = await this.createUploadQueueRecords({
+        campaignId,
+        adGroupId,
+        variants: validatedVariants,
+        finalUrl
+      });
 
       console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records, ${uploadQueueRecords.length} Upload Queue records`);
 
@@ -332,7 +329,11 @@ export class AdGenerationService {
           'Description 2': variant.descriptions[1] || '',
           'Path1': variant.path1 || '',
           'Path2': variant.path2 || '',
-          'Final URL': finalUrl || ''
+          'Final URL': finalUrl || '',
+          'To Upload Table': false,
+          'Validation Status': '✅ Ready',
+          'Generation Status': 'Generated',
+          'Created At': new Date().toISOString()
         }
       }));
 

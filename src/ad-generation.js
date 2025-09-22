@@ -43,11 +43,6 @@ export class AdGenerationService {
         finalUrl
       });
 
-      // 6. Update the source ad record with generation status
-      await this.updateSourceAdStatus(adId, {
-        'Generate Status': 'Generated',
-        'Meets Threshold': false // Uncheck the trigger checkbox
-      });
 
       console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records`);
 
@@ -59,17 +54,6 @@ export class AdGenerationService {
 
     } catch (error) {
       console.error('Error in generateAdVariants:', error);
-      
-      // Update source ad with error status
-      try {
-        await this.updateSourceAdStatus(adId, {
-          'Generate Status': 'Failed',
-          'Meets Threshold': false // Uncheck the trigger checkbox
-        });
-      } catch (updateError) {
-        console.error('Error updating source ad status on failure:', updateError);
-      }
-      
       throw error;
     }
   }
@@ -358,27 +342,6 @@ export class AdGenerationService {
   }
 
 
-  async updateSourceAdStatus(adId, fields) {
-    try {
-      // Find the source ad record by Ad ID
-      const records = await this.airtable.getRecords('Ads', {
-        filterByFormula: `{Ad ID} = '${adId}'`
-      });
-
-      if (records.length > 0) {
-        await this.airtable.updateRecords('Ads', [{
-          id: records[0].id,
-          fields: fields
-        }]);
-        console.log(`Updated source ad status for Ad ID: ${adId}`);
-      } else {
-        console.warn(`Source ad not found for Ad ID: ${adId}`);
-      }
-    } catch (error) {
-      console.error('Error updating source ad status:', error);
-      throw error;
-    }
-  }
 
   validateAdCopy(variant) {
     // Validate headlines (max 30 characters each)

@@ -84,10 +84,14 @@ try {
         
         // Update the record with generation status (only if fields exist)
         await safeUpdate(table, recordId, {
+            'Generate Status': 'Generated',
+            'Meets Threshold': false, // Uncheck the trigger checkbox
             'Last Generation Status': 'Generated',
             'Last Generation Time': new Date().toISOString(),
             'Variants Generated': result.variantsGenerated || 0
         });
+        
+        console.log("Going well");
         
     } else {
         const errMsg = result?.error || `HTTP ${response.status}`;
@@ -96,10 +100,14 @@ try {
         
         // Update record with error status (only if fields exist)
         await safeUpdate(table, recordId, {
+            'Generate Status': 'Failed',
+            'Meets Threshold': false, // Uncheck the trigger checkbox
             'Last Generation Status': 'Failed',
             'Last Generation Time': new Date().toISOString(),
             'Generation Error': errMsg
         });
+        
+        console.log("Going Error");
     }
 } catch (error) {
     console.log('Script error:');
@@ -108,10 +116,13 @@ try {
     // Update record with error status (only if fields exist)
     try {
         await safeUpdate(table, recordId, {
+            'Generate Status': 'Failed',
+            'Meets Threshold': false, // Uncheck the trigger checkbox
             'Last Generation Status': 'Script Error',
             'Last Generation Time': new Date().toISOString(),
             'Generation Error': error.message
         });
+        console.log("Going Error");
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);
     }

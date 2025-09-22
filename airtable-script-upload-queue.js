@@ -93,11 +93,8 @@ try {
         console.log(`- Upload Queue Record ID: ${result.uploadQueueRecordId || 'N/A'}`);
         console.log(`- Message: ${result.message || 'N/A'}`);
         
-        // Update the Ad Generator record with success status
-        await safeUpdate(table, recordId, {
-            'To Upload Table': false, // Uncheck the checkbox
-            'To Upload Status': 'Sent to Queue'
-        });
+        // The API will automatically update the Ad Generator record
+        // (uncheck "To Upload Table" and set "Upload Status")
         
     } else {
         const errMsg = result?.error || `HTTP ${response.status}`;
@@ -107,8 +104,7 @@ try {
         // Update record with error status (only if fields exist)
         await safeUpdate(table, recordId, {
             'Generation Status': 'Upload Failed',
-            'To Upload Status': 'Failed',
-            'To Upload Table': true // Keep checkbox checked to show error
+            'To Upload Status': 'Failed'
         });
     }
 } catch (error) {
@@ -119,8 +115,7 @@ try {
     try {
         await safeUpdate(table, recordId, {
             'Generation Status': 'Script Error',
-            'To Upload Status': 'Script Error',
-            'To Upload Table': true // Keep checkbox checked to show error
+            'To Upload Status': 'Script Error'
         });
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);

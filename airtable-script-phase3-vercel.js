@@ -6,11 +6,11 @@ const table = base.getTable('Ads');
 // Get inputs from Automation → Run script → Input variables
 // Set these in the automation:
 // - recordId: {{trigger.record.id}}
-// - apiUrl:   https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad
+// - apiUrl:   https://google-ads-airtable.vercel.app/api/generate-ad
 const { recordId, apiUrl } = input.config();
 
 // Fallback URL if apiUrl is not provided
-const fallbackUrl = "https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad";
+const fallbackUrl = "https://google-ads-airtable.vercel.app/api/generate-ad";
 const finalApiUrl = apiUrl || fallbackUrl;
 
 if (!recordId) {
@@ -83,13 +83,6 @@ try {
         console.log(`- Ad Generator records: ${result.adGeneratorRecords || 'N/A'}`);
         
         // Update the record with generation status (only if fields exist)
-        await safeUpdate(table, recordId, {
-            'Generate Status': 'Generated',
-            'Meets Threshold': false, // Uncheck the trigger checkbox
-            'Last Generation Status': 'Generated',
-            'Last Generation Time': new Date().toISOString(),
-            'Variants Generated': result.variantsGenerated || 0
-        });
         
         console.log("Going well");
         
@@ -99,13 +92,6 @@ try {
         console.log(errMsg);
         
         // Update record with error status (only if fields exist)
-        await safeUpdate(table, recordId, {
-            'Generate Status': 'Failed',
-            'Meets Threshold': false, // Uncheck the trigger checkbox
-            'Last Generation Status': 'Failed',
-            'Last Generation Time': new Date().toISOString(),
-            'Generation Error': errMsg
-        });
         
         console.log("Going Error");
     }
@@ -115,13 +101,7 @@ try {
     
     // Update record with error status (only if fields exist)
     try {
-        await safeUpdate(table, recordId, {
-            'Generate Status': 'Failed',
-            'Meets Threshold': false, // Uncheck the trigger checkbox
-            'Last Generation Status': 'Script Error',
-            'Last Generation Time': new Date().toISOString(),
-            'Generation Error': error.message
-        });
+        
         console.log("Going Error");
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);

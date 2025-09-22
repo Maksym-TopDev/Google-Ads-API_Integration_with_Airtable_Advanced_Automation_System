@@ -17,19 +17,23 @@ export class AdGenerationService {
       // 1. Get source ad content for inspiration
       const sourceAd = await this.getSourceAdContent(adId);
       
-      // 2. Generate variants using OpenAI
+      // 2. Collect target keywords for context
+      const targetKeywords = await this.getTargetKeywords({ campaignId, adGroupId });
+
+      // 3. Generate variants using OpenAI
       const variants = await this.generateWithOpenAI({
         campaignName,
         adGroupName,
         finalUrl,
         performanceScore,
-        sourceAd
+        sourceAd,
+        targetKeywords
       });
 
-      // 3. Validate generated content
+      // 4. Validate generated content
       const validatedVariants = variants.map(variant => this.validateAdCopy(variant));
 
-      // 4. Create records in Airtable
+      // 5. Create records in Airtable
       const adGeneratorRecords = await this.createAdGeneratorRecords({
         campaignId,
         adGroupId,
@@ -63,6 +67,32 @@ export class AdGenerationService {
     }
   }
 
+  async getTargetKeywords({ campaignId, adGroupId }) {
+    try {
+      // Try to pull top keywords by Ad Group first, fallback to Campaign
+      let records = [];
+      if (adGroupId) {
+        records = await this.airtable.getRecords('Keywords', {
+          filterByFormula: `{Ad Group ID} = "${adGroupId}"`,
+          maxRecords: 15
+        });
+      }
+      if ((!records || records.length === 0) && campaignId) {
+        records = await this.airtable.getRecords('Keywords', {
+          filterByFormula: `{Campaign ID} = "${campaignId}"`,
+          maxRecords: 15
+        });
+      }
+      const texts = (records || []).map(r => r.get('Keyword Text')).filter(Boolean);
+      // Deduplicate and trim
+      const unique = Array.from(new Set(texts.map(t => String(t).trim()))).slice(0, 15);
+      return unique;
+    } catch (err) {
+      console.error('Error fetching target keywords:', err);
+      return [];
+    }
+  }
+
   async getSourceAdContent(adId) {
     try {
       // Get the source ad record from Airtable
@@ -89,14 +119,15 @@ export class AdGenerationService {
     }
   }
 
-  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd }) {
+  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd, targetKeywords }) {
     try {
       const prompt = this.buildPrompt({
         campaignName,
         adGroupName,
         finalUrl,
         performanceScore,
-        sourceAd
+        sourceAd,
+        targetKeywords
       });
 
       const response = await this.openai.chat.completions.create({
@@ -124,47 +155,83 @@ export class AdGenerationService {
     }
   }
 
-  buildPrompt({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd }) {
-    let prompt = `Generate 3 new Google Ads variants based on this high-performing ad:
+  buildPrompt({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd, targetKeywords }) {
+    const sourceHeadlines = sourceAd?.headlines || '';
+    const sourceDescriptions = sourceAd?.descriptions || '';
+    const sourcePath1 = sourceAd?.path1 || '';
+    const sourcePath2 = sourceAd?.path2 || '';
+    const keywordsList = (targetKeywords || []).join(', ');
 
-CAMPAIGN: ${campaignName}
-AD GROUP: ${adGroupName}
-FINAL URL: ${finalUrl}
+    const prompt = `Generate 3 optimized Google Ads variants based on the high-performing source ad(s), destination URL, and target keywords below.
 
-PERFORMANCE SCORE: ${performanceScore}`;
+DESTINATION URL ANALYSIS
+1) Visit and analyze: ${finalUrl}
+2) Detect site type (choose one): E-commerce/Direct Sales; Lead Generation; Review/Comparison; Service Providers; Content/Information.
+3) Adapt messaging based on detected site type:
+- E-commerce: emphasize product benefits, pricing, promos, guarantees, shipping/returns. Use “Buy/Shop/Save/Get”.
+- Lead Gen: emphasize value/expertise/outcomes, “Learn/Discover/Find Out”, free consults/quotes.
+- Review: emphasize authority/independence, comparisons, testing methodology, “Best/Top/#1”.
+- Services: emphasize expertise, results, certifications, local presence, outcomes.
+- Content: emphasize insights, completeness, expert angle, recency.
 
-    if (sourceAd) {
-      prompt += `
+SOURCE AD ANALYSIS
+Use the high-performing source ad(s) below:
+- Headlines: ${sourceHeadlines}
+- Descriptions: ${sourceDescriptions}
+- Paths: ${sourcePath1} / ${sourcePath2}
+- Performance Score: ${performanceScore}
 
-SOURCE AD (for inspiration):
-Headlines: ${sourceAd.headlines}
-Descriptions: ${sourceAd.descriptions}
-Path1: ${sourceAd.path1}
-Path2: ${sourceAd.path2}`;
-    }
+ADAPTIVE VARIANT STRATEGIES
+Match the detected site type. Create 3 distinct variants:
+- E-commerce: 1) Product-focused 2) Offer-focused 3) Urgency-focused
+- Lead Gen: 1) Problem-solution 2) Expertise/authority 3) Free value/consult
+- Review: 1) Authority 2) Comparison 3) Result/#1 pick
+- Services: 1) Experience/credibility 2) Results/outcomes 3) Local/availability
+- Content: 1) Educational value 2) Comprehensive resource 3) Expert insight
 
-    prompt += `
+FORMAT REQUIREMENTS
+Technical:
+- Exactly 3 headlines per variant (≤30 chars each).
+- Exactly 2 descriptions per variant (≤90 chars each).
+- Suggest Path1 and Path2 (≤15 chars each) that reflect the URL structure.
+- Policy compliant; avoid unverifiable claims; no clickbait.
 
-REQUIREMENTS:
-- Generate 3 variants (each with 3 headlines + 2 descriptions)
-- Headlines: max 30 characters each
-- Descriptions: max 90 characters each
-- Include Path1 and Path2 suggestions (max 15 characters each)
-- Make each variant unique but similar in style to the source
-- Focus on the high-performing elements from the source ad
-- Ensure all copy is Google Ads policy compliant
+Content:
+- Headlines: front-load primary keywords and value; include specifics (numbers/percentages) where possible; tone fits site type.
+- Descriptions: expand headline promise; include trust signals appropriate to site type (shipping/returns, independent testing, certifications, local presence, expert-authored/up-to-date for content); end with a site-appropriate CTA.
+- Display paths mirror key URL/category terms and reinforce the message.
 
-FORMAT YOUR RESPONSE AS JSON:
-{
-  "variants": [
-    {
-      "headlines": ["headline1", "headline2", "headline3"],
-      "descriptions": ["description1", "description2"],
-      "path1": "path1",
-      "path2": "path2"
-    }
-  ]
-}`;
+QUALITY CHECKLIST
+- Correct site type and adapted strategy
+- Character limits respected
+- No repetitive language across variants
+- Clear value propositions and trust signals
+- Natural keyword integration
+- CTAs match page intent; mobile-friendly
+
+OUTPUT FORMAT
+DETECTED SITE TYPE: [Site Type]
+ADAPTED STRATEGY: [Brief explanation of the chosen approach]
+
+VARIANT 1: [Strategy description]
+Headlines: [H1] | [H2] | [H3]
+Descriptions: [D1] | [D2]
+Paths: [Path1] / [Path2]
+
+VARIANT 2: [Strategy description]
+Headlines: [H1] | [H2] | [H3]
+Descriptions: [D1] | [D2]
+Paths: [Path1] / [Path2]
+
+VARIANT 3: [Strategy description]
+Headlines: [H1] | [H2] | [H3]
+Descriptions: [D1] | [D2]
+Paths: [Path1] / [Path2]
+
+INPUTS
+DESTINATION URL: ${finalUrl}
+TARGET KEYWORDS: ${keywordsList}
+`;
 
     return prompt;
   }

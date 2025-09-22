@@ -53,11 +53,7 @@ export class UploadQueueService {
       const createdRecords = await this.airtable.createRecords('Upload Queue', [uploadQueueRecord]);
       console.log(`Created Upload Queue record: ${createdRecords[0].id}`);
 
-      // Update the Ad Generator record to mark it as sent to queue
-      await this.updateAdGeneratorRecord(adGeneratorRecordId, {
-        'To Upload Table': false, // Uncheck the checkbox
-        'To Upload Status': 'Sent to Queue'
-      });
+     
 
       return {
         success: true,

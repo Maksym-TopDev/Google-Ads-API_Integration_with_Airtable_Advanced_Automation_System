@@ -323,7 +323,6 @@ export class AdGenerationService {
           'Path2': variant.path2 || '',
           'Final URL': finalUrl || '',
           'To Upload Table': false,
-          'To Upload Status': 'Not Ready',
           'Validation Status': '✅ Ready',
           'Generation Status': 'Generated',
           'Created At': new Date().toISOString()

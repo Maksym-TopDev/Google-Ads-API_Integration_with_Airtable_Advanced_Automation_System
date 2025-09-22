@@ -1,8 +1,10 @@
 // Test Vercel API endpoint
 import https from 'https';
 
-// Your actual Vercel URL
-const VERCEL_URL = 'https://google-bfxm3xffd-seo7077s-projects.vercel.app';
+// Your actual Vercel deployment base URL (no path)
+const VERCEL_BASE = 'https://google-ads-airtable.vercel.app';
+const VERCEL_PATH = '/api/generate-ad';
+const endpoint = new URL(VERCEL_PATH, VERCEL_BASE);
 
 const testData = {
     adId: '747836975928',
@@ -11,15 +13,15 @@ const testData = {
     campaignName: 'Honest Healthwise Low Sex Drive',
     adGroupName: 'Low Sex Drive',
     finalUrl: 'https://www.honesthealthwise.com/article/the-5-best-libido-boosters-of-2025',
-    performanceScore: 5
+    toUpload: true
 };
 
 const postData = JSON.stringify(testData);
 
 const options = {
-    hostname: VERCEL_URL.replace('https://', '').replace('http://', ''),
+    hostname: endpoint.hostname,
     port: 443,
-    path: '/api/generate-ad',
+    path: endpoint.pathname,
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -28,7 +30,7 @@ const options = {
 };
 
 console.log('🧪 Testing Vercel API Endpoint...');
-console.log(`🌐 URL: ${VERCEL_URL}/api/generate-ad`);
+console.log(`🌐 URL: ${endpoint.toString()}`);
 console.log('📊 Test data:', testData);
 console.log('');
 

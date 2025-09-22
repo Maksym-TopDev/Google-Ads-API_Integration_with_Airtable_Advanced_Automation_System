@@ -73,7 +73,7 @@ export class UploadQueueService {
   async getAdGeneratorRecord(recordId) {
     try {
       const records = await this.airtable.getRecords('Ad Generator', {
-        filterByFormula: `{Record ID} = '${recordId}'`
+        filterByFormula: `RECORD_ID() = '${recordId}'`
       });
       return records.length > 0 ? records[0] : null;
     } catch (error) {

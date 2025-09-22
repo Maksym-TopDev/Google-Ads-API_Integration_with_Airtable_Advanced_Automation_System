@@ -163,6 +163,7 @@ export class AdGenerationService {
     const keywordsList = (targetKeywords || []).join(', ');
 
     const prompt = `Generate 3 optimized Google Ads variants based on the high-performing source ad(s), destination URL, and target keywords below.
+Return ONLY a single JSON object as the response. Do not include any commentary, markdown, or code fences. The JSON must match the specified schema exactly.
 
 DESTINATION URL ANALYSIS
 1) Visit and analyze: ${finalUrl}

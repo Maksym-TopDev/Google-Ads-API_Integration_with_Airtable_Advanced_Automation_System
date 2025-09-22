@@ -144,8 +144,6 @@ export class AdGenerationService {
         ],
         temperature: 0.7,
         max_tokens: 1000,
-        // Hint the model to return a strict JSON object when supported
-        response_format: { type: 'json_object' }
       });
 
       const content = response.choices[0].message.content;

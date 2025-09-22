@@ -81,7 +81,6 @@ try {
         console.log('Success! Ad variants generated:');
         console.log(`- Variants generated: ${result.variantsGenerated || 'N/A'}`);
         console.log(`- Ad Generator records: ${result.adGeneratorRecords || 'N/A'}`);
-        console.log(`- Upload Queue records: ${result.uploadQueueRecords || 'N/A'}`);
         
         // Update the record with generation status (only if fields exist)
         await safeUpdate(table, recordId, {

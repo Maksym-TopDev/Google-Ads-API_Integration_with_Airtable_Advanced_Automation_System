@@ -43,19 +43,11 @@ export class AdGenerationService {
         finalUrl
       });
 
-      const uploadQueueRecords = await this.createUploadQueueRecords({
-        campaignId,
-        adGroupId,
-        variants: validatedVariants,
-        finalUrl
-      });
-
-      console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records, ${uploadQueueRecords.length} Upload Queue records`);
+      console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records`);
 
       return {
         variantsGenerated: validatedVariants.length,
         adGeneratorRecords: adGeneratorRecords.length,
-        uploadQueueRecords: uploadQueueRecords.length,
         variants: validatedVariants
       };
 
@@ -347,31 +339,6 @@ export class AdGenerationService {
     }
   }
 
-  async createUploadQueueRecords({ campaignId, adGroupId, variants, finalUrl }) {
-    try {
-      const records = variants.map((variant, index) => ({
-        fields: {
-          'Campaign ID': campaignId,
-          'Ad Group ID': adGroupId,
-          'Headlines': variant.headlines.join(' | '),
-          'Descriptions': variant.descriptions.join(' | '),
-          'Path1': variant.path1 || '',
-          'Path2': variant.path2 || '',
-          'Final URL': finalUrl,
-          'Status': 'Pending',
-          'Created At': new Date().toISOString()
-        }
-      }));
-
-      const createdRecords = await this.airtable.createRecords('Upload Queue', records);
-      console.log(`Created ${createdRecords.length} Upload Queue records`);
-      return createdRecords;
-
-    } catch (error) {
-      console.error('Error creating Upload Queue records:', error);
-      throw error;
-    }
-  }
 
   validateAdCopy(variant) {
     // Validate headlines (max 30 characters each)

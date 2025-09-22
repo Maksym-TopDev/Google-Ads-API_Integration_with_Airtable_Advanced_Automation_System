@@ -10,7 +10,7 @@ export class AdGenerationService {
     });
   }
 
-  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl }) {
+  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl, toUpload = false }) {
     try {
       console.log(`Starting ad generation for Ad ID: ${adId}`);
 
@@ -43,12 +43,15 @@ export class AdGenerationService {
         finalUrl
       });
 
-      const uploadQueueRecords = await this.createUploadQueueRecords({
-        campaignId,
-        adGroupId,
-        variants: validatedVariants,
-        finalUrl
-      });
+      let uploadQueueRecords = [];
+      if (toUpload) {
+        uploadQueueRecords = await this.createUploadQueueRecords({
+          campaignId,
+          adGroupId,
+          variants: validatedVariants,
+          finalUrl
+        });
+      }
 
       console.log(`Generated ${validatedVariants.length} variants, created ${adGeneratorRecords.length} Ad Generator records, ${uploadQueueRecords.length} Upload Queue records`);
 

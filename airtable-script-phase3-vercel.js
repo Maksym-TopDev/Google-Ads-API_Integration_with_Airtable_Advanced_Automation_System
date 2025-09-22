@@ -1,16 +1,17 @@
 // Airtable Script for Phase 3 Auto-Trigger (Vercel Version)
-// This script runs when "Meets Threshold" checkbox is checked in the Ads table
+// This script runs on ad record updates. It will ONLY create Upload Queue when
+// the new checkbox "To Upload Table" is checked.
 
 const table = base.getTable('Ads');
 
 // Get inputs from Automation → Run script → Input variables
 // Set these in the automation:
 // - recordId: {{trigger.record.id}}
-// - apiUrl:   https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad
+// - apiUrl:   https://google-ads-airtable.vercel.app/api/generate-ad
 const { recordId, apiUrl } = input.config();
 
 // Fallback URL if apiUrl is not provided
-const fallbackUrl = "https://google-bfxm3xffd-seo7077s-projects.vercel.app/api/generate-ad";
+const fallbackUrl = "https://google-ads-airtable.vercel.app/api/generate-ad";
 const finalApiUrl = apiUrl || fallbackUrl;
 
 if (!recordId) {
@@ -32,7 +33,7 @@ const adGroupId = record.getCellValue('Ad Group ID');
 const campaignName = record.getCellValue('Campaign Name') || '';
 const adGroupName = record.getCellValue('Ad Group Name') || '';
 const finalUrl = record.getCellValue('Final URLs') || '';
-const performanceScore = record.getCellValue('Performance Score') || 0;
+const toUpload = !!record.getCellValue('To Upload Table');
 
 // Validate required fields
 if (!adId || !campaignId || !adGroupId) {
@@ -52,7 +53,7 @@ try {
         campaignName,
         adGroupName,
         finalUrl,
-        performanceScore
+        toUpload
     };
 
     console.log(`Calling Vercel API endpoint: ${finalApiUrl}`);
@@ -81,26 +82,19 @@ try {
         console.log('Success! Ad variants generated:');
         console.log(`- Variants generated: ${result.variantsGenerated || 'N/A'}`);
         console.log(`- Ad Generator records: ${result.adGeneratorRecords || 'N/A'}`);
-        console.log(`- Upload Queue records: ${result.uploadQueueRecords || 'N/A'}`);
+        console.log(`- Upload Queue records: ${result.uploadQueueRecords || 0}`);
         
         // Update the record with generation status (only if fields exist)
-        await safeUpdate(table, recordId, {
-            'Last Generation Status': 'Generated',
-            'Last Generation Time': new Date().toISOString(),
-            'Variants Generated': result.variantsGenerated || 0
-        });
+       
+        console.log("Going well");
         
     } else {
         const errMsg = result?.error || `HTTP ${response.status}`;
         console.log('Error generating ad variants:');
         console.log(errMsg);
         
-        // Update record with error status (only if fields exist)
-        await safeUpdate(table, recordId, {
-            'Last Generation Status': 'Failed',
-            'Last Generation Time': new Date().toISOString(),
-            'Generation Error': errMsg
-        });
+        
+        console.log("Going Error");
     }
 } catch (error) {
     console.log('Script error:');
@@ -108,11 +102,8 @@ try {
     
     // Update record with error status (only if fields exist)
     try {
-        await safeUpdate(table, recordId, {
-            'Last Generation Status': 'Script Error',
-            'Last Generation Time': new Date().toISOString(),
-            'Generation Error': error.message
-        });
+        
+        console.log("Going Error");
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);
     }

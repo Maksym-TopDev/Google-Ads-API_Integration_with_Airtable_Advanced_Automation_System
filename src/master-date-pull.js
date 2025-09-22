@@ -508,7 +508,7 @@ class MasterDatePullService {
             // All other cases = Rating 1, Meets Thresholds = false
             if (ad.cost >= 100 && ad.roas >= 3.0) {
                 ad.performanceScore = 5; // Rating 5
-                ad.meetsThresholds = true;
+                ad.meetsThresholds = false;
             } else if (ad.cost >= 100 && ad.roas >= 2.0 && ad.roas < 3.0) {
                 ad.performanceScore = 4; // Rating 4
                 ad.meetsThresholds = false;

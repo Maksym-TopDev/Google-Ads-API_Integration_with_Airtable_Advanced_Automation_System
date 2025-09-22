@@ -188,6 +188,22 @@ class AirtableClient {
 		}
 		return out;
 	}
+
+	async updateRecords(tableName, updates) {
+		await this.checkRateLimit();
+		if (!updates?.length) return [];
+		const table = this.base(tableName);
+		const out = [];
+
+		for (let i = 0; i < updates.length; i += 10) {
+			const batch = updates.slice(i, i + 10);
+			const updated = await table.update(batch, { typecast: true });
+			out.push(...updated);
+			this.rateLimiter.requests++;
+			await this.checkRateLimit();
+		}
+		return out;
+	}
 }
 
 export { AirtableClient };

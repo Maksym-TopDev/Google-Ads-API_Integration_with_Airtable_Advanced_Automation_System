@@ -10,9 +10,9 @@ export class AdGenerationService {
     });
   }
 
-  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl, performanceScore }) {
+  async generateAdVariants({ adId, campaignId, adGroupId, campaignName, adGroupName, finalUrl }) {
     try {
-      console.log(`Starting ad generation for Ad ID: ${adId}, Performance Score: ${performanceScore}`);
+      console.log(`Starting ad generation for Ad ID: ${adId}`);
 
       // 1. Get source ad content for inspiration
       const sourceAd = await this.getSourceAdContent(adId);
@@ -25,7 +25,6 @@ export class AdGenerationService {
         campaignName,
         adGroupName,
         finalUrl,
-        performanceScore,
         sourceAd,
         targetKeywords
       });
@@ -41,7 +40,6 @@ export class AdGenerationService {
         campaignName,
         adGroupName,
         adId,
-        performanceScore,
         finalUrl
       });
 
@@ -119,13 +117,12 @@ export class AdGenerationService {
     }
   }
 
-  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd, targetKeywords }) {
+  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, sourceAd, targetKeywords }) {
     try {
       const prompt = this.buildPrompt({
         campaignName,
         adGroupName,
         finalUrl,
-        performanceScore,
         sourceAd,
         targetKeywords
       });
@@ -177,7 +174,7 @@ export class AdGenerationService {
     }
   }
 
-  buildPrompt({ campaignName, adGroupName, finalUrl, performanceScore, sourceAd, targetKeywords }) {
+  buildPrompt({ campaignName, adGroupName, finalUrl, sourceAd, targetKeywords }) {
     const src = {
       headlines: sourceAd?.headlines || '',
       descriptions: sourceAd?.descriptions || '',
@@ -194,7 +191,7 @@ export class AdGenerationService {
     lines.push(`destination_url: ${finalUrl || ''}`);
     lines.push(`campaign_name: ${campaignName || ''}`);
     lines.push(`ad_group_name: ${adGroupName || ''}`);
-    lines.push(`performance_score: ${performanceScore || 0}`);
+    // performance score intentionally omitted per client request
     lines.push(`source_headlines: ${src.headlines}`);
     lines.push(`source_descriptions: ${src.descriptions}`);
     lines.push(`source_path1: ${src.path1}`);
@@ -214,7 +211,6 @@ export class AdGenerationService {
     lines.push(`Source Ad → headlines: ${src.headlines}`);
     lines.push(`Source Ad → descriptions: ${src.descriptions}`);
     lines.push(`Source Ad → paths: ${src.path1} / ${src.path2}`);
-    lines.push(`Performance Score: ${performance_score_hint(performanceScore)}`);
     lines.push('');
     lines.push('Adaptive Variant Strategies (produce 3 variants matching site type):');
     lines.push('- E-commerce: 1) Product-focused 2) Offer-focused 3) Urgency-focused');
@@ -317,7 +313,7 @@ export class AdGenerationService {
     }
   }
 
-  async createAdGeneratorRecords({ campaignId, adGroupId, variants, campaignName, adGroupName, adId, performanceScore, finalUrl }) {
+  async createAdGeneratorRecords({ campaignId, adGroupId, variants, campaignName, adGroupName, adId, finalUrl }) {
     try {
       const records = variants.map((variant, index) => ({
         fields: {
@@ -326,7 +322,6 @@ export class AdGenerationService {
           'Campaign Name': campaignName || '',
           'Ad Group Name': adGroupName || '',
           'Source Ad ID': adId,
-          'Performance Score': performanceScore || 0,
           'Headline 1': variant.headlines[0] || '',
           'Headline 2': variant.headlines[1] || '',
           'Headline 3': variant.headlines[2] || '',

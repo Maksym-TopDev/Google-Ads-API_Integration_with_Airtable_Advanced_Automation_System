@@ -27,8 +27,7 @@ export default async function handler(req, res) {
       adGroupId, 
       campaignName, 
       adGroupName, 
-      finalUrl, 
-      performanceScore 
+      finalUrl 
     } = req.body;
 
     // Validate required fields
@@ -49,8 +48,7 @@ export default async function handler(req, res) {
       adGroupId,
       campaignName: campaignName || '',
       adGroupName: adGroupName || '',
-      finalUrl: finalUrl || '',
-      performanceScore: performanceScore || 0
+      finalUrl: finalUrl || ''
     });
 
     // Return success response

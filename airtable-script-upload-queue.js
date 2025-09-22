@@ -103,7 +103,8 @@ try {
         
         // Update record with error status (only if fields exist)
         await safeUpdate(table, recordId, {
-            'Generation Status': 'Upload Failed'
+            'Generation Status': 'Upload Failed',
+            'To Upload Status': 'Failed'
         });
     }
 } catch (error) {
@@ -113,7 +114,8 @@ try {
     // Update record with error status (only if fields exist)
     try {
         await safeUpdate(table, recordId, {
-            'Generation Status': 'Script Error'
+            'Generation Status': 'Script Error',
+            'To Upload Status': 'Script Error'
         });
     } catch (updateError) {
         console.log('Failed to update record with error status:', updateError.message);

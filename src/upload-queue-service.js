@@ -55,7 +55,8 @@ export class UploadQueueService {
 
       // Update the Ad Generator record to mark it as sent to queue
       await this.updateAdGeneratorRecord(adGeneratorRecordId, {
-        'To Upload Table': false // Uncheck the checkbox
+        'To Upload Table': false, // Uncheck the checkbox
+        'To Upload Status': 'Sent to Queue'
       });
 
       return {

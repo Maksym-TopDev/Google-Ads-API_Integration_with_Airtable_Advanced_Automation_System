@@ -116,7 +116,7 @@ export class AdGenerationService {
       const response = await this.anthropic.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
         max_tokens: Math.min(Number(process.env.CLAUDE_MAX_TOKENS || 1200), 4000),
-        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.7),
+        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.9),
         messages: [
           { role: 'user', content: prompt }
         ]
@@ -163,8 +163,17 @@ export class AdGenerationService {
     const keywords = (targetKeywords || []).join(', ');
 
     const lines = [];
-    lines.push('Generate 3 optimized Google Ads variants based on the destination URL and landing page type.');
+    lines.push('Generate 3 COMPLETELY DIFFERENT Google Ads variants. Each variant must be UNIQUE and DISTINCT.');
+    lines.push('CRITICAL: Each variant must use DIFFERENT angles, tones, and approaches. NO SIMILARITY between variants.');
     lines.push('Return ONLY plain text in the required Output Format. No JSON. No markdown. No extra commentary.');
+    
+    lines.push('MANDATORY VARIETY REQUIREMENTS:');
+    lines.push('1. DIFFERENT TONE: Variant 1 = Direct/Bold, Variant 2 = Friendly/Conversational, Variant 3 = Professional/Authoritative');
+    lines.push('2. DIFFERENT ANGLES: Variant 1 = Problem-focused, Variant 2 = Solution-focused, Variant 3 = Benefit-focused');
+    lines.push('3. DIFFERENT CTAs: Variant 1 = Action words (Buy/Get/Order), Variant 2 = Discovery words (Learn/Discover/Find), Variant 3 = Urgency words (Now/Today/Limited)');
+    lines.push('4. DIFFERENT KEYWORDS: Use different primary keywords in each variant headline');
+    lines.push('5. DIFFERENT MESSAGING: Each variant must tell a completely different story');
+    
     lines.push('DESTINATION URL ANALYSIS');
     lines.push('Step 1: Analyze the destination URL to determine site type:');
     lines.push('Site Types:');
@@ -173,79 +182,52 @@ export class AdGenerationService {
     lines.push('Review/Comparison Sites: Independent reviews, "best of" lists, product comparisons, ranking sites');
     lines.push('Service Providers: Local businesses, professional services, SaaS platforms');
     lines.push('Content/Information: Blogs, guides, educational resources, informational content');
-    lines.push('Step 2: Adapt strategy based on detected site type:');
-    lines.push('E-commerce/Direct Sales Strategy:');
-    lines.push('Emphasize product benefits, pricing, promotions');
-    lines.push('Use action words: "Buy," "Shop," "Save," "Get," "Order"');
-    lines.push('Highlight guarantees, shipping, return policies');
-    lines.push('Focus on immediate purchase intent');
-    lines.push('Lead Generation Strategy:');
-    lines.push('Focus on consultation value, expertise, problem-solving');
-    lines.push('Use discovery words: "Learn," "Discover," "Find Out," "Get Quote"');
-    lines.push('Emphasize free consultations, quotes, assessments');
-    lines.push('Build trust before asking for contact info');
-    lines.push('Review/Comparison Sites Strategy:');
-    lines.push('Lead with authority and independence: "Expert-Tested," "Unbiased Review"');
-    lines.push('Highlight comparison value: "We Tested 50+," "#1 Ranked," "Best Choice"');
-    lines.push('Use research-oriented language: "Top Rated," "Winner," "Recommended"');
-    lines.push('Emphasize credibility and thorough analysis');
-    lines.push('Service Providers Strategy:');
-    lines.push('Emphasize expertise, local presence, results');
-    lines.push('Include trust signals: years in business, certifications');
-    lines.push('Focus on outcomes and customer success');
-    lines.push('Highlight availability and response time');
-    lines.push('Content/Information Strategy:');
-    lines.push('Lead with valuable insights or solutions');
-    lines.push('Use educational language: "Complete Guide," "Expert Tips"');
-    lines.push('Emphasize comprehensiveness and authority');
-    lines.push('Focus on learning and discovery');
-    lines.push('VARIANT CREATION STRATEGIES');
-    lines.push('Generate 3 distinct approaches based on site type:');
-    lines.push('For E-commerce/Direct Sales:');
-    lines.push('Variant 1: Product-focused (features, benefits, differentiators)');
-    lines.push('Variant 2: Offer-focused (deals, promotions, value propositions)');
-    lines.push('Variant 3: Urgency-focused (limited time, scarcity, immediate action)');
-    lines.push('For Lead Generation:');
-    lines.push('Variant 1: Problem-solution focused');
-    lines.push('Variant 2: Expertise/authority focused');
-    lines.push('Variant 3: Free value/consultation focused');
-    lines.push('For Review/Comparison Sites:');
-    lines.push('Variant 1: Authority-focused ("Expert Review Reveals...")');
-    lines.push('Variant 2: Comparison-focused ("We Tested X Options - This Won")');
-    lines.push('Variant 3: Result-focused ("See Our #1 Recommendation")');
-    lines.push('For Service Providers:');
-    lines.push('Variant 1: Experience/credibility focused');
-    lines.push('Variant 2: Results/outcome focused');
-    lines.push('Variant 3: Local/availability focused');
-    lines.push('For Content/Information:');
-    lines.push('Variant 1: Educational value focused');
-    lines.push('Variant 2: Comprehensive resource focused');
-    lines.push('Variant 3: Expert insight focused');
+    
+    lines.push('VARIANT DIFFERENTIATION STRATEGIES:');
+    lines.push('VARIANT 1 - PROBLEM/SOLUTION ANGLE:');
+    lines.push('Focus on pain points, frustrations, or challenges the audience faces');
+    lines.push('Use direct, bold language that addresses the problem head-on');
+    lines.push('Headlines should highlight the problem or solution');
+    lines.push('Examples: "Tired of [Problem]?", "Stop [Problem] Now", "Fix [Problem] Today"');
+    
+    lines.push('VARIANT 2 - BENEFIT/VALUE ANGLE:');
+    lines.push('Focus on positive outcomes, benefits, and value propositions');
+    lines.push('Use friendly, conversational tone that builds trust');
+    lines.push('Headlines should emphasize benefits and results');
+    lines.push('Examples: "Get [Benefit] Fast", "Enjoy [Benefit] Today", "Discover [Benefit]"');
+    
+    lines.push('VARIANT 3 - URGENCY/SCARCITY ANGLE:');
+    lines.push('Focus on limited time, exclusive offers, or immediate action needed');
+    lines.push('Use professional, authoritative tone that creates urgency');
+    lines.push('Headlines should create FOMO or time pressure');
+    lines.push('Examples: "Limited Time Offer", "Only [X] Left", "Ends Today"');
+    
     lines.push('TECHNICAL REQUIREMENTS');
     lines.push('Character Limits (Strict):');
     lines.push('Headlines: Maximum 30 characters each');
     lines.push('Descriptions: Maximum 90 characters each');
     lines.push('Display Paths: Maximum 15 characters each');
-    lines.push('Content Guidelines:');
-    lines.push('Headlines: Front-load primary keywords and value props, include numbers when possible');
-    lines.push('Descriptions: Elaborate on headline promises with specific details and appropriate CTAs');
-    lines.push('Paths: Mirror URL structure and support primary message');
-    lines.push('TRUST SIGNALS BY SITE TYPE');
-    lines.push('E-commerce: Free shipping, money-back guarantee, secure checkout, customer reviews');
-    lines.push('Review Sites: Independent testing, unbiased analysis, expert methodology, sample sizes');
-    lines.push('Lead Generation: Free consultation, no obligation, certified experts, local presence');
-    lines.push('Service Providers: Licensed/insured, years of experience, satisfaction guarantee');
-    lines.push('Content Sites: Expert authored, comprehensive coverage, trusted source');
+    
+    lines.push('CONTENT DIFFERENTIATION RULES:');
+    lines.push('1. NO SHARED WORDS: Each variant must use completely different primary words');
+    lines.push('2. DIFFERENT STRUCTURE: Variant 1 = Question/Problem, Variant 2 = Statement/Benefit, Variant 3 = Command/Urgency');
+    lines.push('3. DIFFERENT EMOTIONS: Variant 1 = Frustration/Relief, Variant 2 = Hope/Excitement, Variant 3 = Urgency/Fear of Missing Out');
+    lines.push('4. DIFFERENT NUMBERS: Use different numbers, percentages, or quantities in each variant');
+    lines.push('5. DIFFERENT PATHS: Each variant must have unique display paths that support its message');
+    
     lines.push('OUTPUT FORMAT');
     lines.push('DETECTED SITE TYPE: [Site Type] STRATEGY APPROACH: [Brief explanation of approach based on site type]');
-    lines.push('VARIANT 1: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 2: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 3: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 1: [Problem/Solution Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Benefit/Value Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 3: [Urgency/Scarcity Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
     lines.push('Do not output markdown code fences or JSON. Only the lines above.');
+    
     lines.push('REQUIRED INPUTS:');
     lines.push(`DESTINATION URL: ${finalUrl || ''}`);
     lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
     lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
+    
+    lines.push('REMEMBER: Each variant must be COMPLETELY DIFFERENT. No similar words, tones, or approaches between variants.');
 
     return lines.join('\n');
   }

@@ -14,7 +14,8 @@
     "airtable": "^0.12.2",
     "axios": "^1.6.0",
     "dotenv": "^17.2.2",
-    "openai": "^4.67.3"
+    "openai": "^4.67.3",
+    "@anthropic-ai/sdk": "^0.21.1"
   },
   "engines": {
     "node": ">=18.0.0"

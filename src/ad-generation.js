@@ -1,12 +1,12 @@
 // Phase 3: AI Ad Generation Service for Vercel
 import { AirtableClient } from './airtableClient.js';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export class AdGenerationService {
   constructor() {
     this.airtable = new AirtableClient();
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+    this.anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY
     });
   }
 
@@ -17,8 +17,8 @@ export class AdGenerationService {
       // 1. Collect target keywords for context
       const targetKeywords = await this.getTargetKeywords({ campaignId, adGroupId });
 
-      // 2. Generate variants using OpenAI (no source ad content)
-      const variants = await this.generateWithOpenAI({
+      // 2. Generate variants using Claude (no source ad content)
+      const variants = await this.generateWithClaude({
         campaignName,
         adGroupName,
         finalUrl,
@@ -105,7 +105,7 @@ export class AdGenerationService {
     }
   }
 
-  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, targetKeywords }) {
+  async generateWithClaude({ campaignName, adGroupName, finalUrl, targetKeywords }) {
     try {
       const prompt = this.buildPrompt({
         campaignName,
@@ -113,51 +113,23 @@ export class AdGenerationService {
         finalUrl,
         targetKeywords
       });
-
-      // First attempt: strict schema-first prompt
-      const response = await this.openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4',
+      const response = await this.anthropic.messages.create({
+        model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
+        max_tokens: Math.min(Number(process.env.CLAUDE_MAX_TOKENS || 1200), 4000),
+        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.7),
         messages: [
-          { role: 'system', content: 'You are an expert Google Ads copywriter specializing in creating distinct, varied ad variants. Return only valid JSON that matches the requested schema.' },
           { role: 'user', content: prompt }
-        ],
-        temperature: Number(process.env.OPENAI_TEMPERATURE || 0.9),
-        max_tokens: Math.min(Number(process.env.OPENAI_MAX_TOKENS || 1500), 1500),
+        ]
       });
 
-      let content = response.choices?.[0]?.message?.content || '';
-      try {
-        return this.parseOpenAIResponse(content);
-      } catch (parseErr) {
-        // Log preview for diagnostics (no PII)
-        const preview = content.slice(0, 600);
-        console.warn('Initial parse failed. Preview of raw content:', preview);
-
-        // One-shot reformat-only retry
-        const reformatPrompt = [
-          'Reformat the text below into EXACTLY this JSON schema and return ONLY JSON with no markdown or code fences:',
-          '{"variants":[{"headlines":["h1","h2","h3"],"descriptions":["d1","d2"],"path1":"string","path2":"string"}]}',
-          'Text to convert:',
-          preview
-        ].join('\n');
-
-        const retry = await this.openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL || 'gpt-4',
-          messages: [
-            { role: 'system', content: 'Return only valid JSON.' },
-            { role: 'user', content: reformatPrompt }
-          ],
-          temperature: 0.2,
-          max_tokens: 400,
-        });
-
-        content = retry.choices?.[0]?.message?.content || '';
-        return this.parseOpenAIResponse(content);
-      }
+      const content = (response?.content || [])
+        .map(p => (typeof p === 'string' ? p : (p.text || '')))
+        .join('\n');
+      return this.parseClaudeResponse(content);
 
     } catch (error) {
-      console.error('OpenAI generation error:', error);
-      throw new Error(`OpenAI generation failed: ${error.message}`);
+      console.error('Claude generation error:', error);
+      throw new Error(`Claude generation failed: ${error.message}`);
     }
   }
 
@@ -165,151 +137,93 @@ export class AdGenerationService {
     const keywords = (targetKeywords || []).join(', ');
 
     const lines = [];
-    lines.push('Generate 3 optimized Google Ads variants based on the high-performing source ad and destination URL provided below.');
-    lines.push('');
+    lines.push('Generate 3 optimized Google Ads variants based on the destination URL and landing page type.');
     lines.push('DESTINATION URL ANALYSIS');
-    lines.push('First, analyze the destination URL to determine the site type and adapt strategy accordingly:');
-    lines.push('');
-    lines.push('Site Type Detection:');
-    lines.push('- E-commerce/Direct Sales: Product pages, checkout flows, brand websites');
-    lines.push('- Lead Generation: Contact forms, quote requests, consultation bookings');
-    lines.push('- Review/Comparison Sites: Independent reviews, "best of" lists, product comparisons');
-    lines.push('- Service Providers: Local businesses, professional services, SaaS platforms');
-    lines.push('- Content/Information: Blogs, guides, educational resources');
-    lines.push('');
-    lines.push('URL-Based Strategy Adaptation:');
-    lines.push('Based on the detected site type, adjust messaging focus:');
-    lines.push('- E-commerce/Direct Sales: Emphasize product benefits, pricing, promotions');
-    lines.push('  Use action words: "Buy," "Shop," "Save," "Get"');
-    lines.push('  Highlight guarantees, shipping, return policies');
-    lines.push('- Lead Generation: Focus on consultation value, expertise, problem-solving');
-    lines.push('  Use discovery words: "Learn," "Discover," "Find Out"');
-    lines.push('  Emphasize free consultations, quotes, assessments');
-    lines.push('- Review/Comparison Sites: Lead with authority and independence: "Expert-Tested," "Unbiased Review"');
-    lines.push('  Highlight comparison value: "We Tested 50+," "#1 Ranked"');
-    lines.push('  Use research-oriented language: "Best Choice," "Top Rated," "Winner"');
-    lines.push('- Service Providers: Emphasize expertise, local presence, results');
-    lines.push('  Include trust signals: years in business, certifications');
-    lines.push('  Focus on outcomes and customer success');
-    lines.push('- Content/Information: Lead with valuable insights or solutions');
-    lines.push('  Use educational language: "Complete Guide," "Expert Tips"');
-    lines.push('  Emphasize comprehensiveness and authority');
-    lines.push('');
-    // Do not analyze or reuse any previous/source ad copy. Create fresh variants based only on URL, keywords, and context.
-    lines.push('ADAPTIVE VARIANT STRATEGIES');
-    lines.push('The three variants will adapt based on the detected site type:');
-    lines.push('');
+    lines.push('Step 1: Analyze the destination URL to determine site type:');
+    lines.push('Site Types:');
+    lines.push('E-commerce/Direct Sales: Product pages, checkout flows, brand websites selling products');
+    lines.push('Lead Generation: Contact forms, quote requests, consultation bookings, capture pages');
+    lines.push('Review/Comparison Sites: Independent reviews, "best of" lists, product comparisons, ranking sites');
+    lines.push('Service Providers: Local businesses, professional services, SaaS platforms');
+    lines.push('Content/Information: Blogs, guides, educational resources, informational content');
+    lines.push('Step 2: Adapt strategy based on detected site type:');
+    lines.push('E-commerce/Direct Sales Strategy:');
+    lines.push('Emphasize product benefits, pricing, promotions');
+    lines.push('Use action words: "Buy," "Shop," "Save," "Get," "Order"');
+    lines.push('Highlight guarantees, shipping, return policies');
+    lines.push('Focus on immediate purchase intent');
+    lines.push('Lead Generation Strategy:');
+    lines.push('Focus on consultation value, expertise, problem-solving');
+    lines.push('Use discovery words: "Learn," "Discover," "Find Out," "Get Quote"');
+    lines.push('Emphasize free consultations, quotes, assessments');
+    lines.push('Build trust before asking for contact info');
+    lines.push('Review/Comparison Sites Strategy:');
+    lines.push('Lead with authority and independence: "Expert-Tested," "Unbiased Review"');
+    lines.push('Highlight comparison value: "We Tested 50+," "#1 Ranked," "Best Choice"');
+    lines.push('Use research-oriented language: "Top Rated," "Winner," "Recommended"');
+    lines.push('Emphasize credibility and thorough analysis');
+    lines.push('Service Providers Strategy:');
+    lines.push('Emphasize expertise, local presence, results');
+    lines.push('Include trust signals: years in business, certifications');
+    lines.push('Focus on outcomes and customer success');
+    lines.push('Highlight availability and response time');
+    lines.push('Content/Information Strategy:');
+    lines.push('Lead with valuable insights or solutions');
+    lines.push('Use educational language: "Complete Guide," "Expert Tips"');
+    lines.push('Emphasize comprehensiveness and authority');
+    lines.push('Focus on learning and discovery');
+    lines.push('VARIANT CREATION STRATEGIES');
+    lines.push('Generate 3 distinct approaches based on site type:');
     lines.push('For E-commerce/Direct Sales:');
-    lines.push('- Variant 1: Product-focused (features, benefits, differentiators)');
-    lines.push('- Variant 2: Offer-focused (deals, promotions, value propositions)');
-    lines.push('- Variant 3: Urgency-focused (limited time, scarcity, immediate action)');
-    lines.push('');
+    lines.push('Variant 1: Product-focused (features, benefits, differentiators)');
+    lines.push('Variant 2: Offer-focused (deals, promotions, value propositions)');
+    lines.push('Variant 3: Urgency-focused (limited time, scarcity, immediate action)');
     lines.push('For Lead Generation:');
-    lines.push('- Variant 1: Problem-solution focused');
-    lines.push('- Variant 2: Expertise/authority focused');
-    lines.push('- Variant 3: Free value/consultation focused');
-    lines.push('');
+    lines.push('Variant 1: Problem-solution focused');
+    lines.push('Variant 2: Expertise/authority focused');
+    lines.push('Variant 3: Free value/consultation focused');
     lines.push('For Review/Comparison Sites:');
-    lines.push('- Variant 1: Authority-focused ("Expert Review Reveals...")');
-    lines.push('- Variant 2: Comparison-focused ("We Tested X Options - This Won")');
-    lines.push('- Variant 3: Result-focused ("See Our #1 Recommendation")');
-    lines.push('');
+    lines.push('Variant 1: Authority-focused ("Expert Review Reveals...")');
+    lines.push('Variant 2: Comparison-focused ("We Tested X Options - This Won")');
+    lines.push('Variant 3: Result-focused ("See Our #1 Recommendation")');
     lines.push('For Service Providers:');
-    lines.push('- Variant 1: Experience/credibility focused');
-    lines.push('- Variant 2: Results/outcome focused');
-    lines.push('- Variant 3: Local/availability focused');
-    lines.push('');
+    lines.push('Variant 1: Experience/credibility focused');
+    lines.push('Variant 2: Results/outcome focused');
+    lines.push('Variant 3: Local/availability focused');
     lines.push('For Content/Information:');
-    lines.push('- Variant 1: Educational value focused');
-    lines.push('- Variant 2: Comprehensive resource focused');
-    lines.push('- Variant 3: Expert insight focused');
-    lines.push('');
-    lines.push('FORMAT REQUIREMENTS');
-    lines.push('Technical Specifications:');
-    lines.push('- 3 Headlines per variant (max 30 characters each)');
-    lines.push('- 2 Descriptions per variant (max 90 characters each)');
-    lines.push('- Path1 & Path2 suggestions (max 15 characters each, should reflect URL structure)');
-    lines.push('');
+    lines.push('Variant 1: Educational value focused');
+    lines.push('Variant 2: Comprehensive resource focused');
+    lines.push('Variant 3: Expert insight focused');
+    lines.push('TECHNICAL REQUIREMENTS');
+    lines.push('Character Limits (Strict):');
+    lines.push('Headlines: Maximum 30 characters each');
+    lines.push('Descriptions: Maximum 90 characters each');
+    lines.push('Display Paths: Maximum 15 characters each');
     lines.push('Content Guidelines:');
-    lines.push('Headlines:');
-    lines.push('- Front-load primary keywords and value props');
-    lines.push('- Include numbers, percentages, or specific benefits when possible');
-    lines.push('- Adapt tone to site type (authoritative for reviews, action-oriented for e-commerce)');
-    lines.push('- Ensure brand/site name fits if space allows');
-    lines.push('');
-    lines.push('Descriptions:');
-    lines.push('- Elaborate on headline promises with specific, relevant details');
-    lines.push('- Include appropriate trust signals based on site type:');
-    lines.push('  * E-commerce: guarantees, shipping, returns');
-    lines.push('  * Reviews: independence, testing methodology, sample size');
-    lines.push('  * Services: certifications, experience, local presence');
-    lines.push('  * Lead gen: free consultations, no obligation');
-    lines.push('- End with compelling, site-appropriate call-to-action');
-    lines.push('');
-    lines.push('Display Paths:');
-    lines.push('- Mirror the destination URL structure when possible');
-    lines.push('- Use site-type appropriate categorization');
-    lines.push('- Support the ad\'s primary message');
-    lines.push('');
-    lines.push('SITE-SPECIFIC TRUST SIGNALS');
-    lines.push('- E-commerce: Free shipping, money-back guarantee, secure checkout, customer reviews');
-    lines.push('- Review Sites: Independent testing, unbiased analysis, expert methodology, sample sizes');
-    lines.push('- Lead Generation: Free consultation, no obligation, certified experts, local presence');
-    lines.push('- Service Providers: Licensed/insured, years of experience, satisfaction guarantee, local');
-    lines.push('- Content Sites: Expert authored, comprehensive coverage, updated information, trusted source');
-    lines.push('');
-    lines.push('QUALITY CHECKLIST');
-    lines.push('- Site type correctly identified and strategy adapted');
-    lines.push('- All character limits respected');
-    lines.push('- No repetitive language across variants');
-    lines.push('- Google Ads policy compliant');
-    lines.push('- Clear value proposition matching site purpose');
-    lines.push('- Keywords naturally integrated');
-    lines.push('- Trust signals appropriate for site type');
-    lines.push('- CTAs align with destination page intent');
-    lines.push('- Mobile-friendly readability');
-    lines.push('');
-    lines.push('CRITICAL VARIETY REQUIREMENTS:');
-    lines.push('- Each variant must be COMPLETELY DIFFERENT from any previous ads');
-    lines.push('- Do NOT copy, rephrase, or slightly modify any prior ad copy');
-    lines.push('- Create entirely NEW messaging approaches for each variant');
-    lines.push('- Use different value propositions, angles, and emotional triggers');
-    lines.push('- Each variant should feel like it came from a different advertiser');
-    lines.push('- Source ad is for INSPIRATION ONLY - use it to understand the product/service, then create fresh copy');
-    lines.push('');
-    lines.push('VARIANT DIFFERENTIATION RULES:');
-    lines.push('- Variant 1: Focus on a COMPLETELY DIFFERENT benefit or angle than source');
-    lines.push('- Variant 2: Use a DIFFERENT emotional trigger or audience segment');
-    lines.push('- Variant 3: Try a DIFFERENT approach (problem-focused vs solution-focused vs social proof)');
-    lines.push('- Use different keywords, phrases, and messaging tone for each');
-    lines.push('- Avoid any repetition of source ad language, structure, or approach');
-    lines.push('');
-    lines.push('EXAMPLE OF PROPER DIFFERENTIATION:');
-    lines.push('If a prior ad says "Get 50% Off Today" (discount-focused)');
-    lines.push('- Variant 1: "Expert-Recommended Solution" (authority-focused)');
-    lines.push('- Variant 2: "Solve Your Problem Fast" (problem-solution focused)');
-    lines.push('- Variant 3: "Join 10,000+ Happy Customers" (social proof focused)');
-    lines.push('Each variant should feel like a completely different advertiser wrote it.');
-    lines.push('');
+    lines.push('Headlines: Front-load primary keywords and value props, include numbers when possible');
+    lines.push('Descriptions: Elaborate on headline promises with specific details and appropriate CTAs');
+    lines.push('Paths: Mirror URL structure and support primary message');
+    lines.push('TRUST SIGNALS BY SITE TYPE');
+    lines.push('E-commerce: Free shipping, money-back guarantee, secure checkout, customer reviews');
+    lines.push('Review Sites: Independent testing, unbiased analysis, expert methodology, sample sizes');
+    lines.push('Lead Generation: Free consultation, no obligation, certified experts, local presence');
+    lines.push('Service Providers: Licensed/insured, years of experience, satisfaction guarantee');
+    lines.push('Content Sites: Expert authored, comprehensive coverage, trusted source');
     lines.push('OUTPUT FORMAT');
-    lines.push('Return ONLY a single JSON object with this exact schema:');
-    lines.push('{"variants":[{"headlines":["h1","h2","h3"],"descriptions":["d1","d2"],"path1":"string","path2":"string"}]}');
-    lines.push('');
-    // No source ad input provided intentionally
-    lines.push('DESTINATION URL:');
-    lines.push(`${finalUrl || ''}`);
-    lines.push('');
-    lines.push('TARGET KEYWORDS:');
-    lines.push(`${keywords}`);
-    lines.push('');
-    lines.push('CAMPAIGN CONTEXT:');
-    lines.push(`Campaign: ${campaignName || ''}`);
-    lines.push(`Ad Group: ${adGroupName || ''}`);
+    lines.push('DETECTED SITE TYPE: [Site Type] STRATEGY APPROACH: [Brief explanation of approach based on site type]');
+    lines.push('VARIANT 1: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2]');
+    lines.push(' Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 3: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('REQUIRED INPUTS:');
+    lines.push(`DESTINATION URL: ${finalUrl || ''}`);
+    lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
+    lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
 
     return lines.join('\n');
   }
 
-  parseOpenAIResponse(content) {
+  parseClaudeResponse(content) {
     try {
       if (!content || typeof content !== 'string') {
         throw new Error('Empty response content');

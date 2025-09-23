@@ -126,7 +126,7 @@ export class AdGenerationService {
           { role: 'system', content: 'You are an expert Google Ads copywriter specializing in creating distinct, varied ad variants. Return only valid JSON that matches the requested schema.' },
           { role: 'user', content: prompt }
         ],
-        temperature: Number(process.env.OPENAI_TEMPERATURE || 0.7),
+        temperature: Number(process.env.OPENAI_TEMPERATURE || 0.9),
         max_tokens: Math.min(Number(process.env.OPENAI_MAX_TOKENS || 1500), 1500),
       });
 
@@ -207,13 +207,15 @@ export class AdGenerationService {
     lines.push('  Emphasize comprehensiveness and authority');
     lines.push('');
     lines.push('SOURCE AD ANALYSIS');
-    lines.push('Identify and analyze these key elements from the source ad:');
-    lines.push('- Primary value propositions (what makes the offer compelling)');
-    lines.push('- Emotional triggers (urgency, benefit-focused language, social proof)');
-    lines.push('- Target audience signals (demographic/psychographic indicators)');
-    lines.push('- Competitive advantages mentioned');
-    lines.push('- Call-to-action patterns');
-    lines.push('- Keyword alignment with headlines/descriptions');
+    lines.push('IMPORTANT: Use the source ad ONLY to understand the product/service being advertised.');
+    lines.push('DO NOT copy its structure, language, or approach. Create completely fresh variants.');
+    lines.push('');
+    lines.push('From the source ad, identify:');
+    lines.push('- What product/service is being advertised (for context only)');
+    lines.push('- Target audience (to understand who you\'re writing for)');
+    lines.push('- General topic/keywords (to stay relevant)');
+    lines.push('');
+    lines.push('Then IGNORE the source ad\'s specific messaging and create 3 completely different approaches.');
     lines.push('');
     lines.push('ADAPTIVE VARIANT STRATEGIES');
     lines.push('The three variants will adapt based on the detected site type:');
@@ -288,8 +290,27 @@ export class AdGenerationService {
     lines.push('- CTAs align with destination page intent');
     lines.push('- Mobile-friendly readability');
     lines.push('');
-    lines.push('CRITICAL: Each variant must be DISTINCTLY different from the others and from the source ad.');
-    lines.push('Do NOT simply rephrase the source ad. Create fresh, unique approaches for each variant.');
+    lines.push('CRITICAL VARIETY REQUIREMENTS:');
+    lines.push('- Each variant must be COMPLETELY DIFFERENT from the source ad');
+    lines.push('- Do NOT copy, rephrase, or slightly modify the source ad');
+    lines.push('- Create entirely NEW messaging approaches for each variant');
+    lines.push('- Use different value propositions, angles, and emotional triggers');
+    lines.push('- Each variant should feel like it came from a different advertiser');
+    lines.push('- Source ad is for INSPIRATION ONLY - use it to understand the product/service, then create fresh copy');
+    lines.push('');
+    lines.push('VARIANT DIFFERENTIATION RULES:');
+    lines.push('- Variant 1: Focus on a COMPLETELY DIFFERENT benefit or angle than source');
+    lines.push('- Variant 2: Use a DIFFERENT emotional trigger or audience segment');
+    lines.push('- Variant 3: Try a DIFFERENT approach (problem-focused vs solution-focused vs social proof)');
+    lines.push('- Use different keywords, phrases, and messaging tone for each');
+    lines.push('- Avoid any repetition of source ad language, structure, or approach');
+    lines.push('');
+    lines.push('EXAMPLE OF PROPER DIFFERENTIATION:');
+    lines.push('If source ad says "Get 50% Off Today" (discount-focused)');
+    lines.push('- Variant 1: "Expert-Recommended Solution" (authority-focused)');
+    lines.push('- Variant 2: "Solve Your Problem Fast" (problem-solution focused)');
+    lines.push('- Variant 3: "Join 10,000+ Happy Customers" (social proof focused)');
+    lines.push('Each variant should feel like a completely different advertiser wrote it.');
     lines.push('');
     lines.push('OUTPUT FORMAT');
     lines.push('Return ONLY a single JSON object with this exact schema:');

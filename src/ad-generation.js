@@ -125,7 +125,33 @@ export class AdGenerationService {
       const content = (response?.content || [])
         .map(p => (typeof p === 'string' ? p : (p.text || '')))
         .join('\n');
-      return this.parseClaudeResponse(content);
+      try {
+        return this.parseClaudeResponse(content);
+      } catch (parseErr) {
+        const snippet = String(content).slice(0, 600);
+        console.warn('Claude output (first 600 chars):\n' + snippet);
+        // Ask Claude to reformat strictly into required line format
+        const reformatPrompt = [
+          'Reformat the following content into EXACTLY this plain-text format with no extra commentary, no markdown, no JSON:',
+          'VARIANT 1: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]',
+          'VARIANT 2: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]',
+          'VARIANT 3: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]',
+          'Only output three VARIANT lines exactly as specified. Do not include any other lines.',
+          '--- CONTENT TO REFORMAT START ---',
+          snippet,
+          '--- CONTENT TO REFORMAT END ---'
+        ].join('\n');
+        const reformatRes = await this.anthropic.messages.create({
+          model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
+          max_tokens: 800,
+          temperature: 0.2,
+          messages: [ { role: 'user', content: reformatPrompt } ]
+        });
+        const reformatted = (reformatRes?.content || [])
+          .map(p => (typeof p === 'string' ? p : (p.text || '')))
+          .join('\n');
+        return this.parseClaudeResponse(reformatted);
+      }
 
     } catch (error) {
       console.error('Claude generation error:', error);
@@ -138,6 +164,7 @@ export class AdGenerationService {
 
     const lines = [];
     lines.push('Generate 3 optimized Google Ads variants based on the destination URL and landing page type.');
+    lines.push('Return ONLY plain text in the required Output Format. No JSON. No markdown. No extra commentary.');
     lines.push('DESTINATION URL ANALYSIS');
     lines.push('Step 1: Analyze the destination URL to determine site type:');
     lines.push('Site Types:');
@@ -212,9 +239,9 @@ export class AdGenerationService {
     lines.push('OUTPUT FORMAT');
     lines.push('DETECTED SITE TYPE: [Site Type] STRATEGY APPROACH: [Brief explanation of approach based on site type]');
     lines.push('VARIANT 1: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 2: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2]');
-    lines.push(' Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
     lines.push('VARIANT 3: [Strategy Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('Do not output markdown code fences or JSON. Only the lines above.');
     lines.push('REQUIRED INPUTS:');
     lines.push(`DESTINATION URL: ${finalUrl || ''}`);
     lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
@@ -229,18 +256,61 @@ export class AdGenerationService {
         throw new Error('Empty response content');
       }
       const text = content.trim();
+
+      // Strategy A: Direct VARIANT lines
       const blocks = text.match(/VARIANT\s*\d:[\s\S]*?(?=(\nVARIANT\s*\d:|$))/gi) || [];
-      const variants = [];
-      for (const block of blocks) {
-        const h = (block.match(/Headlines:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).slice(0,3);
-        const d = (block.match(/Descriptions:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).slice(0,2);
-        const p = (block.match(/Paths?:\s*([^\n]+)/i)?.[1] || '').split('/').map(s => s.trim()).filter(Boolean);
-        const path1 = (p[0] || '').slice(0,15);
-        const path2 = (p[1] || '').slice(0,15);
-        if (h.length === 3 && d.length === 2) {
-          variants.push({ headlines: h, descriptions: d, path1, path2 });
+      const collectFromBlocks = () => {
+        const variants = [];
+        for (const block of blocks) {
+          const h = (block.match(/Headlines:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).filter(Boolean).slice(0,3);
+          const d = (block.match(/Descriptions:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).filter(Boolean).slice(0,2);
+          const pLine = block.match(/Paths?:\s*([^\n]+)/i)?.[1] || '';
+          const p = pLine.split('/').map(s => s.trim()).filter(Boolean);
+          const path1 = (p[0] || '').slice(0,15);
+          const path2 = (p[1] || '').slice(0,15);
+          if (h.length === 3 && d.length === 2) {
+            variants.push({ headlines: h, descriptions: d, path1, path2 });
+          }
+        }
+        return variants;
+      };
+      let variants = collectFromBlocks();
+
+      // Strategy B: JSON fallback if present
+      if (!variants.length) {
+        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            const obj = JSON.parse(jsonMatch[0]);
+            const arr = Array.isArray(obj) ? obj : (obj.variants || []);
+            const mapped = (arr || []).map(v => ({
+              headlines: (v.headlines || []).slice(0,3).map(String),
+              descriptions: (v.descriptions || []).slice(0,2).map(String),
+              path1: String(v.path1 || '').slice(0,15),
+              path2: String(v.path2 || '').slice(0,15)
+            })).filter(v => v.headlines.length === 3 && v.descriptions.length === 2);
+            if (mapped.length) variants = mapped;
+          } catch { /* ignore */ }
         }
       }
+
+      // Strategy C: Heuristic lines (Headlines:, Descriptions:, Paths:) anywhere
+      if (!variants.length) {
+        const variantLike = text.split(/\n\s*\n/).filter(s => /Headlines:/i.test(s) && /Descriptions:/i.test(s));
+        const mapped = variantLike.slice(0,3).map(block => {
+          const h = (block.match(/Headlines:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).filter(Boolean).slice(0,3);
+          const d = (block.match(/Descriptions:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).filter(Boolean).slice(0,2);
+          const p = (block.match(/Paths?:\s*([^\n]+)/i)?.[1] || '').split('/').map(s => s.trim()).filter(Boolean);
+          const path1 = (p[0] || '').slice(0,15);
+          const path2 = (p[1] || '').slice(0,15);
+          if (h.length === 3 && d.length === 2) {
+            return { headlines: h, descriptions: d, path1, path2 };
+          }
+          return null;
+        }).filter(Boolean);
+        if (mapped.length) variants = mapped;
+      }
+
       if (!variants.length) throw new Error('Failed to extract variants');
       return variants;
     } catch (error) {

@@ -228,60 +228,24 @@ export class AdGenerationService {
       if (!content || typeof content !== 'string') {
         throw new Error('Empty response content');
       }
-      // Strip common code fences/backticks
-      content = content.trim()
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/```\s*$/i, '');
-      // 1) Try direct JSON parse
-      let parsed;
-      try {
-        parsed = JSON.parse(content);
-      } catch (_) {
-        // 2) Fallback: extract the first JSON object or variants array
-        const variantsArrayMatch = content.match(/"variants"\s*:\s*(\[[\s\S]*?\])/);
-        if (variantsArrayMatch) {
-          const variantsOnly = variantsArrayMatch[1];
-          const variantsParsed = JSON.parse(variantsOnly);
-          if (Array.isArray(variantsParsed)) return variantsParsed;
+      const text = content.trim();
+      const blocks = text.match(/VARIANT\s*\d:[\s\S]*?(?=(\nVARIANT\s*\d:|$))/gi) || [];
+      const variants = [];
+      for (const block of blocks) {
+        const h = (block.match(/Headlines:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).slice(0,3);
+        const d = (block.match(/Descriptions:\s*([^\n]+)/i)?.[1] || '').split('|').map(s => s.trim()).slice(0,2);
+        const p = (block.match(/Paths?:\s*([^\n]+)/i)?.[1] || '').split('/').map(s => s.trim()).filter(Boolean);
+        const path1 = (p[0] || '').slice(0,15);
+        const path2 = (p[1] || '').slice(0,15);
+        if (h.length === 3 && d.length === 2) {
+          variants.push({ headlines: h, descriptions: d, path1, path2 });
         }
-        const objectMatch = content.match(/\{[\s\S]*\}/);
-        if (!objectMatch) {
-          throw new Error('No JSON found in OpenAI response');
-        }
-        parsed = JSON.parse(objectMatch[0]);
       }
-
-      // 3) Normalize possible shapes
-      if (parsed && Array.isArray(parsed)) {
-        // If model returned array at root, treat as variants
-        return parsed;
-      }
-      if (parsed && Array.isArray(parsed.variants)) {
-        return parsed.variants;
-      }
-
-      // 4) Attempt to reconstruct variants from alternative keys (VARIANT 1/2/3)
-      const variantKeys = Object.keys(parsed || {}).filter(k => /variant\s*\d+/i.test(k));
-      if (variantKeys.length) {
-        const variants = variantKeys
-          .sort()
-          .map(k => parsed[k])
-          .filter(v => v && Array.isArray(v.headlines) && Array.isArray(v.descriptions))
-          .map(v => ({
-            headlines: v.headlines.slice(0, 3),
-            descriptions: v.descriptions.slice(0, 2),
-            path1: (v.path1 || '').toString().slice(0, 15),
-            path2: (v.path2 || '').toString().slice(0, 15)
-          }));
-        if (variants.length) return variants;
-      }
-
-      throw new Error('Invalid response format: missing variants array');
-
+      if (!variants.length) throw new Error('Failed to extract variants');
+      return variants;
     } catch (error) {
-      console.error('Error parsing OpenAI response:', error);
-      throw new Error(`Failed to parse OpenAI response: ${error.message}`);
+      console.error('Error parsing Claude response:', error);
+      throw new Error(`Failed to parse Claude response: ${error.message}`);
     }
   }
 

@@ -116,7 +116,7 @@ export class AdGenerationService {
       const response = await this.anthropic.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
         max_tokens: Math.min(Number(process.env.CLAUDE_MAX_TOKENS || 1200), 4000),
-        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.9),
+        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.7),
         messages: [
           { role: 'user', content: prompt }
         ]
@@ -163,62 +163,85 @@ export class AdGenerationService {
     const keywords = (targetKeywords || []).join(', ');
 
     const lines = [];
-    lines.push('Generate 3 RADICALLY DIFFERENT Google Ads variants. Each must be UNIQUE in structure, words, and approach.');
-    lines.push('CRITICAL: Think of 3 completely different customer personas and messaging strategies.');
-    lines.push('Return ONLY plain text in the required Output Format. No JSON. No markdown. No extra commentary.');
-    
-    lines.push('RADICAL DIFFERENTIATION REQUIREMENTS:');
-    lines.push('VARIANT 1 - SCIENTIFIC/MEDICAL APPROACH:');
-    lines.push('Target: Health-conscious, research-oriented customers');
-    lines.push('Tone: Clinical, authoritative, evidence-based');
-    lines.push('Structure: Fact-based statements, medical terminology, research focus');
-    lines.push('Headline Examples: "Clinical Study Results", "FDA-Approved Solution", "Medical Research Shows"');
-    lines.push('NO words like: natural, discover, help, guide, top, best');
-    
-    lines.push('VARIANT 2 - LIFESTYLE/WELLNESS APPROACH:');
-    lines.push('Target: Wellness enthusiasts, lifestyle-focused customers');
-    lines.push('Tone: Warm, personal, holistic');
-    lines.push('Structure: Personal stories, lifestyle benefits, emotional connection');
-    lines.push('Headline Examples: "Transform Your Life", "Feel Amazing Again", "Your Journey Starts"');
-    lines.push('NO words like: clinical, medical, study, research, approved');
-    
-    lines.push('VARIANT 3 - RESULTS/PERFORMANCE APPROACH:');
-    lines.push('Target: Results-driven, performance-focused customers');
-    lines.push('Tone: Confident, direct, outcome-focused');
-    lines.push('Structure: Bold claims, specific results, performance metrics');
-    lines.push('Headline Examples: "Guaranteed Results", "Proven Formula", "Maximum Performance"');
-    lines.push('NO words like: wellness, journey, feel, transform, lifestyle');
-    
-    lines.push('MANDATORY STRUCTURAL DIFFERENCES:');
-    lines.push('Variant 1: Use numbers, percentages, scientific terms, clinical language');
-    lines.push('Variant 2: Use emotional words, personal pronouns, lifestyle benefits');
-    lines.push('Variant 3: Use power words, guarantees, performance metrics, bold claims');
-    
-    lines.push('WORD EXCLUSION RULES:');
-    lines.push('Each variant must avoid the primary vocabulary of the other two variants');
-    lines.push('If Variant 1 uses "clinical," Variants 2&3 cannot use "clinical" or similar');
-    lines.push('If Variant 2 uses "wellness," Variants 1&3 cannot use "wellness" or similar');
-    lines.push('If Variant 3 uses "guaranteed," Variants 1&2 cannot use "guaranteed" or similar');
-    
-    lines.push('TECHNICAL REQUIREMENTS');
-    lines.push('Character Limits (Strict):');
-    lines.push('Headlines: Maximum 30 characters each');
-    lines.push('Descriptions: Maximum 90 characters each');
-    lines.push('Display Paths: Maximum 15 characters each');
-    
-    lines.push('OUTPUT FORMAT');
-    lines.push('DETECTED SITE TYPE: [Site Type] STRATEGY APPROACH: [Brief explanation of approach based on site type]');
-    lines.push('VARIANT 1: [Scientific/Medical Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 2: [Lifestyle/Wellness Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 3: [Results/Performance Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('Do not output markdown code fences or JSON. Only the lines above.');
-    
-    lines.push('REQUIRED INPUTS:');
+    lines.push('CRITICAL: Generate 3 COMPLETELY DIFFERENT Google Ads variants. Each must use different sentence structures, word choices, and approaches.');
+    lines.push('MANDATORY VARIETY REQUIREMENTS:');
+    lines.push('1. DIFFERENT SENTENCE STRUCTURES: Use questions, statements, commands, and exclamations');
+    lines.push('2. DIFFERENT WORD CHOICES: Avoid repeating the same words across variants');
+    lines.push('3. DIFFERENT APPROACHES: Problem-focused, solution-focused, benefit-focused, urgency-focused');
+    lines.push('4. DIFFERENT TONES: Professional, conversational, urgent, educational, authoritative');
+    lines.push('5. DIFFERENT FORMATS: Some with numbers, some without, some with questions, some with statements');
+    lines.push('');
+    lines.push('FORBIDDEN SIMILARITIES:');
+    lines.push('- Do NOT use the same sentence structure across variants');
+    lines.push('- Do NOT repeat the same words in headlines (except target keywords)');
+    lines.push('- Do NOT use similar phrasing patterns');
+    lines.push('- Do NOT create variants that differ by only 1-2 words');
+    lines.push('');
+    lines.push('DESTINATION URL ANALYSIS:');
+    lines.push('Analyze the URL to determine site type and adapt strategy:');
+    lines.push('E-commerce: Product pages, shopping, checkout flows');
+    lines.push('Lead Generation: Contact forms, consultations, quotes');
+    lines.push('Review Sites: Comparisons, rankings, "best of" lists');
+    lines.push('Service Providers: Local businesses, professional services');
+    lines.push('Content/Info: Blogs, guides, educational resources');
+    lines.push('');
+    lines.push('VARIANT DIVERSIFICATION STRATEGIES:');
+    lines.push('VARIANT 1 - PROBLEM/SOLUTION APPROACH:');
+    lines.push('Structure: Question → Solution → Benefit');
+    lines.push('Tone: Empathetic, understanding');
+    lines.push('Words: "Struggling with...?", "Finally...", "Get relief from..."');
+    lines.push('Example: "Tired of Low Energy? Natural Solution Works Fast"');
+    lines.push('');
+    lines.push('VARIANT 2 - AUTHORITY/EXPERTISE APPROACH:');
+    lines.push('Structure: Credibility → Method → Result');
+    lines.push('Tone: Professional, authoritative');
+    lines.push('Words: "Expert-tested", "Proven method", "Clinically shown"');
+    lines.push('Example: "Doctor-Approved Formula Boosts Vitality 3x"');
+    lines.push('');
+    lines.push('VARIANT 3 - URGENCY/SCARCITY APPROACH:');
+    lines.push('Structure: Limited offer → Immediate benefit → Action');
+    lines.push('Tone: Urgent, action-oriented');
+    lines.push('Words: "Limited time", "Only today", "Act now"');
+    lines.push('Example: "Last Chance: 50% Off Vitality Boost Today"');
+    lines.push('');
+    lines.push('HEADLINE STRUCTURE VARIATIONS:');
+    lines.push('Type 1: Question format - "Why [Problem]? [Solution] Works"');
+    lines.push('Type 2: Statement format - "[Benefit] in [Timeframe] - [Method]"');
+    lines.push('Type 3: Command format - "Stop [Problem] Now - [Solution]"');
+    lines.push('Type 4: Number format - "[Number] [Method] That [Benefit]"');
+    lines.push('Type 5: Comparison format - "[Product] vs [Alternative] - [Winner]"');
+    lines.push('');
+    lines.push('DESCRIPTION STRUCTURE VARIATIONS:');
+    lines.push('Type 1: Benefit-focused - "Experience [benefit] with [method]. [Proof/guarantee]."');
+    lines.push('Type 2: Problem-focused - "Tired of [problem]? [Solution] helps [benefit]. [CTA]."');
+    lines.push('Type 3: Social proof - "[Number] people chose [solution]. [Benefit] guaranteed. [CTA]."');
+    lines.push('Type 4: Urgency-focused - "Limited time: [offer]. [Benefit] in [timeframe]. [CTA] now."');
+    lines.push('Type 5: Educational - "Learn why [method] works for [target]. [Benefit] proven. [CTA]."');
+    lines.push('');
+    lines.push('WORD DIVERSIFICATION RULES:');
+    lines.push('Instead of "Low Sex Drive" use: "Low Libido", "Decreased Desire", "Intimacy Issues", "Drive Problems"');
+    lines.push('Instead of "Natural" use: "Herbal", "Organic", "Plant-based", "Holistic"');
+    lines.push('Instead of "Boost" use: "Enhance", "Improve", "Increase", "Restore"');
+    lines.push('Instead of "Top 5" use: "Best", "Leading", "Proven", "Recommended"');
+    lines.push('Instead of "2025" use: "This Year", "Now", "Today", "Latest"');
+    lines.push('');
+    lines.push('TECHNICAL REQUIREMENTS:');
+    lines.push('Headlines: Max 30 characters each');
+    lines.push('Descriptions: Max 90 characters each');
+    lines.push('Display Paths: Max 15 characters each');
+    lines.push('');
+    lines.push('OUTPUT FORMAT (EXACT):');
+    lines.push('DETECTED SITE TYPE: [Site Type]');
+    lines.push('VARIANT 1: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 3: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('');
+    lines.push('INPUT DATA:');
     lines.push(`DESTINATION URL: ${finalUrl || ''}`);
     lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
     lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
-    
-    lines.push('FINAL REMINDER: Each variant must sound like it was written by a completely different person for a completely different audience. NO overlapping vocabulary, structure, or approach.');
+    lines.push('');
+    lines.push('REMEMBER: Each variant must be COMPLETELY DIFFERENT in structure, words, and approach. No similarities allowed.');
 
     return lines.join('\n');
   }

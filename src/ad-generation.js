@@ -14,18 +14,14 @@ export class AdGenerationService {
     try {
       console.log(`Starting ad generation for Ad ID: ${adId}`);
 
-      // 1. Get source ad content for inspiration
-      const sourceAd = await this.getSourceAdContent(adId);
-      
-      // 2. Collect target keywords for context
+      // 1. Collect target keywords for context
       const targetKeywords = await this.getTargetKeywords({ campaignId, adGroupId });
 
-      // 3. Generate variants using OpenAI
+      // 2. Generate variants using OpenAI (no source ad content)
       const variants = await this.generateWithOpenAI({
         campaignName,
         adGroupName,
         finalUrl,
-        sourceAd,
         targetKeywords
       });
 
@@ -109,13 +105,12 @@ export class AdGenerationService {
     }
   }
 
-  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, sourceAd, targetKeywords }) {
+  async generateWithOpenAI({ campaignName, adGroupName, finalUrl, targetKeywords }) {
     try {
       const prompt = this.buildPrompt({
         campaignName,
         adGroupName,
         finalUrl,
-        sourceAd,
         targetKeywords
       });
 
@@ -166,13 +161,7 @@ export class AdGenerationService {
     }
   }
 
-  buildPrompt({ campaignName, adGroupName, finalUrl, sourceAd, targetKeywords }) {
-    const src = {
-      headlines: sourceAd?.headlines || '',
-      descriptions: sourceAd?.descriptions || '',
-      path1: sourceAd?.path1 || '',
-      path2: sourceAd?.path2 || ''
-    };
+  buildPrompt({ campaignName, adGroupName, finalUrl, targetKeywords }) {
     const keywords = (targetKeywords || []).join(', ');
 
     const lines = [];
@@ -206,17 +195,7 @@ export class AdGenerationService {
     lines.push('  Use educational language: "Complete Guide," "Expert Tips"');
     lines.push('  Emphasize comprehensiveness and authority');
     lines.push('');
-    lines.push('SOURCE AD ANALYSIS');
-    lines.push('IMPORTANT: Use the source ad ONLY to understand the product/service being advertised.');
-    lines.push('DO NOT copy its structure, language, or approach. Create completely fresh variants.');
-    lines.push('');
-    lines.push('From the source ad, identify:');
-    lines.push('- What product/service is being advertised (for context only)');
-    lines.push('- Target audience (to understand who you\'re writing for)');
-    lines.push('- General topic/keywords (to stay relevant)');
-    lines.push('');
-    lines.push('Then IGNORE the source ad\'s specific messaging and create 3 completely different approaches.');
-    lines.push('');
+    // Do not analyze or reuse any previous/source ad copy. Create fresh variants based only on URL, keywords, and context.
     lines.push('ADAPTIVE VARIANT STRATEGIES');
     lines.push('The three variants will adapt based on the detected site type:');
     lines.push('');
@@ -291,8 +270,8 @@ export class AdGenerationService {
     lines.push('- Mobile-friendly readability');
     lines.push('');
     lines.push('CRITICAL VARIETY REQUIREMENTS:');
-    lines.push('- Each variant must be COMPLETELY DIFFERENT from the source ad');
-    lines.push('- Do NOT copy, rephrase, or slightly modify the source ad');
+    lines.push('- Each variant must be COMPLETELY DIFFERENT from any previous ads');
+    lines.push('- Do NOT copy, rephrase, or slightly modify any prior ad copy');
     lines.push('- Create entirely NEW messaging approaches for each variant');
     lines.push('- Use different value propositions, angles, and emotional triggers');
     lines.push('- Each variant should feel like it came from a different advertiser');
@@ -306,7 +285,7 @@ export class AdGenerationService {
     lines.push('- Avoid any repetition of source ad language, structure, or approach');
     lines.push('');
     lines.push('EXAMPLE OF PROPER DIFFERENTIATION:');
-    lines.push('If source ad says "Get 50% Off Today" (discount-focused)');
+    lines.push('If a prior ad says "Get 50% Off Today" (discount-focused)');
     lines.push('- Variant 1: "Expert-Recommended Solution" (authority-focused)');
     lines.push('- Variant 2: "Solve Your Problem Fast" (problem-solution focused)');
     lines.push('- Variant 3: "Join 10,000+ Happy Customers" (social proof focused)');
@@ -316,11 +295,7 @@ export class AdGenerationService {
     lines.push('Return ONLY a single JSON object with this exact schema:');
     lines.push('{"variants":[{"headlines":["h1","h2","h3"],"descriptions":["d1","d2"],"path1":"string","path2":"string"}]}');
     lines.push('');
-    lines.push('SOURCE AD TO ANALYZE:');
-    lines.push(`Source Ad → headlines: ${src.headlines}`);
-    lines.push(`Source Ad → descriptions: ${src.descriptions}`);
-    lines.push(`Source Ad → paths: ${src.path1} / ${src.path2}`);
-    lines.push('');
+    // No source ad input provided intentionally
     lines.push('DESTINATION URL:');
     lines.push(`${finalUrl || ''}`);
     lines.push('');

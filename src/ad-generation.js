@@ -163,44 +163,42 @@ export class AdGenerationService {
     const keywords = (targetKeywords || []).join(', ');
 
     const lines = [];
-    lines.push('Generate 3 COMPLETELY DIFFERENT Google Ads variants. Each variant must be UNIQUE and DISTINCT.');
-    lines.push('CRITICAL: Each variant must use DIFFERENT angles, tones, and approaches. NO SIMILARITY between variants.');
+    lines.push('Generate 3 RADICALLY DIFFERENT Google Ads variants. Each must be UNIQUE in structure, words, and approach.');
+    lines.push('CRITICAL: Think of 3 completely different customer personas and messaging strategies.');
     lines.push('Return ONLY plain text in the required Output Format. No JSON. No markdown. No extra commentary.');
     
-    lines.push('MANDATORY VARIETY REQUIREMENTS:');
-    lines.push('1. DIFFERENT TONE: Variant 1 = Direct/Bold, Variant 2 = Friendly/Conversational, Variant 3 = Professional/Authoritative');
-    lines.push('2. DIFFERENT ANGLES: Variant 1 = Problem-focused, Variant 2 = Solution-focused, Variant 3 = Benefit-focused');
-    lines.push('3. DIFFERENT CTAs: Variant 1 = Action words (Buy/Get/Order), Variant 2 = Discovery words (Learn/Discover/Find), Variant 3 = Urgency words (Now/Today/Limited)');
-    lines.push('4. DIFFERENT KEYWORDS: Use different primary keywords in each variant headline');
-    lines.push('5. DIFFERENT MESSAGING: Each variant must tell a completely different story');
+    lines.push('RADICAL DIFFERENTIATION REQUIREMENTS:');
+    lines.push('VARIANT 1 - SCIENTIFIC/MEDICAL APPROACH:');
+    lines.push('Target: Health-conscious, research-oriented customers');
+    lines.push('Tone: Clinical, authoritative, evidence-based');
+    lines.push('Structure: Fact-based statements, medical terminology, research focus');
+    lines.push('Headline Examples: "Clinical Study Results", "FDA-Approved Solution", "Medical Research Shows"');
+    lines.push('NO words like: natural, discover, help, guide, top, best');
     
-    lines.push('DESTINATION URL ANALYSIS');
-    lines.push('Step 1: Analyze the destination URL to determine site type:');
-    lines.push('Site Types:');
-    lines.push('E-commerce/Direct Sales: Product pages, checkout flows, brand websites selling products');
-    lines.push('Lead Generation: Contact forms, quote requests, consultation bookings, capture pages');
-    lines.push('Review/Comparison Sites: Independent reviews, "best of" lists, product comparisons, ranking sites');
-    lines.push('Service Providers: Local businesses, professional services, SaaS platforms');
-    lines.push('Content/Information: Blogs, guides, educational resources, informational content');
+    lines.push('VARIANT 2 - LIFESTYLE/WELLNESS APPROACH:');
+    lines.push('Target: Wellness enthusiasts, lifestyle-focused customers');
+    lines.push('Tone: Warm, personal, holistic');
+    lines.push('Structure: Personal stories, lifestyle benefits, emotional connection');
+    lines.push('Headline Examples: "Transform Your Life", "Feel Amazing Again", "Your Journey Starts"');
+    lines.push('NO words like: clinical, medical, study, research, approved');
     
-    lines.push('VARIANT DIFFERENTIATION STRATEGIES:');
-    lines.push('VARIANT 1 - PROBLEM/SOLUTION ANGLE:');
-    lines.push('Focus on pain points, frustrations, or challenges the audience faces');
-    lines.push('Use direct, bold language that addresses the problem head-on');
-    lines.push('Headlines should highlight the problem or solution');
-    lines.push('Examples: "Tired of [Problem]?", "Stop [Problem] Now", "Fix [Problem] Today"');
+    lines.push('VARIANT 3 - RESULTS/PERFORMANCE APPROACH:');
+    lines.push('Target: Results-driven, performance-focused customers');
+    lines.push('Tone: Confident, direct, outcome-focused');
+    lines.push('Structure: Bold claims, specific results, performance metrics');
+    lines.push('Headline Examples: "Guaranteed Results", "Proven Formula", "Maximum Performance"');
+    lines.push('NO words like: wellness, journey, feel, transform, lifestyle');
     
-    lines.push('VARIANT 2 - BENEFIT/VALUE ANGLE:');
-    lines.push('Focus on positive outcomes, benefits, and value propositions');
-    lines.push('Use friendly, conversational tone that builds trust');
-    lines.push('Headlines should emphasize benefits and results');
-    lines.push('Examples: "Get [Benefit] Fast", "Enjoy [Benefit] Today", "Discover [Benefit]"');
+    lines.push('MANDATORY STRUCTURAL DIFFERENCES:');
+    lines.push('Variant 1: Use numbers, percentages, scientific terms, clinical language');
+    lines.push('Variant 2: Use emotional words, personal pronouns, lifestyle benefits');
+    lines.push('Variant 3: Use power words, guarantees, performance metrics, bold claims');
     
-    lines.push('VARIANT 3 - URGENCY/SCARCITY ANGLE:');
-    lines.push('Focus on limited time, exclusive offers, or immediate action needed');
-    lines.push('Use professional, authoritative tone that creates urgency');
-    lines.push('Headlines should create FOMO or time pressure');
-    lines.push('Examples: "Limited Time Offer", "Only [X] Left", "Ends Today"');
+    lines.push('WORD EXCLUSION RULES:');
+    lines.push('Each variant must avoid the primary vocabulary of the other two variants');
+    lines.push('If Variant 1 uses "clinical," Variants 2&3 cannot use "clinical" or similar');
+    lines.push('If Variant 2 uses "wellness," Variants 1&3 cannot use "wellness" or similar');
+    lines.push('If Variant 3 uses "guaranteed," Variants 1&2 cannot use "guaranteed" or similar');
     
     lines.push('TECHNICAL REQUIREMENTS');
     lines.push('Character Limits (Strict):');
@@ -208,18 +206,11 @@ export class AdGenerationService {
     lines.push('Descriptions: Maximum 90 characters each');
     lines.push('Display Paths: Maximum 15 characters each');
     
-    lines.push('CONTENT DIFFERENTIATION RULES:');
-    lines.push('1. NO SHARED WORDS: Each variant must use completely different primary words');
-    lines.push('2. DIFFERENT STRUCTURE: Variant 1 = Question/Problem, Variant 2 = Statement/Benefit, Variant 3 = Command/Urgency');
-    lines.push('3. DIFFERENT EMOTIONS: Variant 1 = Frustration/Relief, Variant 2 = Hope/Excitement, Variant 3 = Urgency/Fear of Missing Out');
-    lines.push('4. DIFFERENT NUMBERS: Use different numbers, percentages, or quantities in each variant');
-    lines.push('5. DIFFERENT PATHS: Each variant must have unique display paths that support its message');
-    
     lines.push('OUTPUT FORMAT');
     lines.push('DETECTED SITE TYPE: [Site Type] STRATEGY APPROACH: [Brief explanation of approach based on site type]');
-    lines.push('VARIANT 1: [Problem/Solution Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 2: [Benefit/Value Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
-    lines.push('VARIANT 3: [Urgency/Scarcity Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 1: [Scientific/Medical Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Lifestyle/Wellness Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 3: [Results/Performance Strategy] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
     lines.push('Do not output markdown code fences or JSON. Only the lines above.');
     
     lines.push('REQUIRED INPUTS:');
@@ -227,7 +218,7 @@ export class AdGenerationService {
     lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
     lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
     
-    lines.push('REMEMBER: Each variant must be COMPLETELY DIFFERENT. No similar words, tones, or approaches between variants.');
+    lines.push('FINAL REMINDER: Each variant must sound like it was written by a completely different person for a completely different audience. NO overlapping vocabulary, structure, or approach.');
 
     return lines.join('\n');
   }

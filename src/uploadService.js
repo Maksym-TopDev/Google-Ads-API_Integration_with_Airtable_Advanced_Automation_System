@@ -131,12 +131,20 @@ export class UploadService {
       ...(loginCustomerId ? { 'login-customer-id': loginCustomerId } : {})
     };
 
-    const res = await axios.post(url, body, { headers });
-    const resourceName = res?.data?.mutateOperationResponses?.[0]?.adGroupAdResult?.resourceName
-      || res?.data?.results?.[0]?.resourceName
-      || '';
-    const idMatch = String(resourceName).match(/adGroupAds\/(\d+)/);
-    return idMatch ? idMatch[1] : resourceName;
+    try {
+      const res = await axios.post(url, body, { headers });
+      const resourceName = res?.data?.mutateOperationResponses?.[0]?.adGroupAdResult?.resourceName
+        || res?.data?.results?.[0]?.resourceName
+        || '';
+      const idMatch = String(resourceName).match(/adGroupAds\/(\d+)/);
+      return idMatch ? idMatch[1] : resourceName;
+    } catch (err) {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const message = err?.message;
+      const details = typeof data === 'object' ? JSON.stringify(data) : String(data || '');
+      throw new Error(`Google Ads API ${status || ''} ${message || ''} ${details}`.trim());
+    }
   }
 }
 

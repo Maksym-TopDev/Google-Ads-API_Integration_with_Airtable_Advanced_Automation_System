@@ -63,9 +63,9 @@ export class UploadService {
       clientSecret: process.env.GOOGLE_ADS_OAUTH_CLIENT_SECRET,
       developerToken: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
       refreshToken: process.env.GOOGLE_ADS_REFRESH_TOKEN,
-      loginCustomerId: (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '').replace(/-/g, ''),
+      loginCustomerId: (process.env.GOOGLE_ADS_MCC_ID || '').replace(/-/g, ''),
       customerId: (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/-/g, ''),
-      apiVersion: process.env.GOOGLE_ADS_API_VERSION || 'v18'
+      apiVersion: process.env.GOOGLE_ADS_API_VERSION || 'v21'
     };
     const missing = Object.entries(cfg)
       .filter(([k, v]) => !v && !['loginCustomerId'].includes(k))

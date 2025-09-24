@@ -119,8 +119,7 @@ export class UploadService {
             }
           }
         }
-      ],
-      responseContentType: 'RESOURCE_NAME'
+      ]
     };
 
     const url = `https://googleads.googleapis.com/${apiVersion}/customers/${cust}/googleAds:mutate`;

@@ -127,6 +127,11 @@ export class AdGenerationService {
         .join('\n');
       try {
         const variants = this.parseClaudeResponse(content);
+        // Check for similarities and retry if needed
+        if (this.hasSimilarContent(variants)) {
+          console.log('Similar content detected, retrying with different approach...');
+          return await this.generateWithClaudeRetry({ campaignName, adGroupName, finalUrl, targetKeywords }, variants);
+        }
         // Enforce variety by checking for similarities
         const uniqueVariants = this.enforceVariety(variants);
         return uniqueVariants;
@@ -354,6 +359,147 @@ export class AdGenerationService {
     return lines.join('\n');
   }
 
+  hasSimilarContent(variants) {
+    if (!variants || variants.length < 3) return false;
+    
+    // Collect all headlines and descriptions
+    const allHeadlines = [];
+    const allDescriptions = [];
+    
+    variants.forEach(variant => {
+      allHeadlines.push(...variant.headlines);
+      allDescriptions.push(...variant.descriptions);
+    });
+    
+    // Check for identical headlines within the same generation
+    for (let i = 0; i < allHeadlines.length; i++) {
+      for (let j = i + 1; j < allHeadlines.length; j++) {
+        if (allHeadlines[i].toLowerCase().trim() === allHeadlines[j].toLowerCase().trim()) {
+          console.log(`Identical headlines detected: "${allHeadlines[i]}" appears multiple times`);
+          return true;
+        }
+      }
+    }
+    
+    // Check for identical descriptions within the same generation
+    for (let i = 0; i < allDescriptions.length; i++) {
+      for (let j = i + 1; j < allDescriptions.length; j++) {
+        if (allDescriptions[i].toLowerCase().trim() === allDescriptions[j].toLowerCase().trim()) {
+          console.log(`Identical descriptions detected: "${allDescriptions[i]}" appears multiple times`);
+          return true;
+        }
+      }
+    }
+    
+    // Check for similar headlines between variants
+    for (let i = 0; i < variants.length; i++) {
+      for (let j = i + 1; j < variants.length; j++) {
+        const h1 = variants[i].headlines.join(' ').toLowerCase();
+        const h2 = variants[j].headlines.join(' ').toLowerCase();
+        
+        // Check if headlines are too similar (more than 70% word overlap)
+        const words1 = h1.split(/\s+/).filter(w => w.length > 3);
+        const words2 = h2.split(/\s+/).filter(w => w.length > 3);
+        const commonWords = words1.filter(word => words2.includes(word));
+        const similarity = commonWords.length / Math.max(words1.length, words2.length);
+        
+        if (similarity > 0.7) {
+          console.log(`Similar headlines detected: "${h1}" vs "${h2}" (${Math.round(similarity * 100)}% similar)`);
+          return true;
+        }
+      }
+    }
+    
+    // Check for similar descriptions between variants
+    for (let i = 0; i < variants.length; i++) {
+      for (let j = i + 1; j < variants.length; j++) {
+        const d1 = variants[i].descriptions.join(' ').toLowerCase();
+        const d2 = variants[j].descriptions.join(' ').toLowerCase();
+        
+        if (d1 === d2) {
+          console.log(`Identical descriptions detected: "${d1}"`);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  async generateWithClaudeRetry({ campaignName, adGroupName, finalUrl, targetKeywords }, previousVariants) {
+    const retryPrompt = this.buildRetryPrompt({ campaignName, adGroupName, finalUrl, targetKeywords }, previousVariants);
+    
+    const response = await this.anthropic.messages.create({
+      model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
+      max_tokens: Math.min(Number(process.env.CLAUDE_MAX_TOKENS || 1200), 4000),
+      temperature: 1.0, // Maximum creativity for retry
+      messages: [
+        { role: 'user', content: retryPrompt }
+      ]
+    });
+
+    const content = (response?.content || [])
+      .map(p => (typeof p === 'string' ? p : (p.text || '')))
+      .join('\n');
+    
+    const variants = this.parseClaudeResponse(content);
+    return this.enforceVariety(variants);
+  }
+
+  buildRetryPrompt({ campaignName, adGroupName, finalUrl, targetKeywords }, previousVariants) {
+    const keywords = (targetKeywords || []).join(', ');
+    
+    const lines = [];
+    lines.push('CRITICAL: The previous generation was too similar. Generate COMPLETELY DIFFERENT variants.');
+    lines.push('');
+    lines.push('FORBIDDEN CONTENT (DO NOT USE ANY OF THESE):');
+    previousVariants.forEach((variant, index) => {
+      lines.push(`Variant ${index + 1} - DO NOT REPEAT:`);
+      lines.push(`Headlines: ${variant.headlines.join(' | ')}`);
+      lines.push(`Descriptions: ${variant.descriptions.join(' | ')}`);
+      lines.push('');
+    });
+    lines.push('');
+    lines.push('MANDATORY REQUIREMENTS:');
+    lines.push('1. Use COMPLETELY DIFFERENT words than the forbidden content above');
+    lines.push('2. Use DIFFERENT sentence structures');
+    lines.push('3. Use DIFFERENT approaches (problem vs solution vs urgency vs authority)');
+    lines.push('4. Use DIFFERENT emotional triggers');
+    lines.push('5. Use DIFFERENT value propositions');
+    lines.push('');
+    lines.push('WORD REPLACEMENT REQUIREMENTS:');
+    lines.push('Instead of common words, use these alternatives:');
+    lines.push('- "Low" → "Decreased", "Reduced", "Diminished", "Weakened"');
+    lines.push('- "Sex Drive" → "Libido", "Desire", "Passion", "Intimacy"');
+    lines.push('- "Natural" → "Herbal", "Organic", "Plant-based", "Holistic"');
+    lines.push('- "Help" → "Solution", "Support", "Aid", "Assistance"');
+    lines.push('- "Top 5" → "Best", "Leading", "Proven", "Recommended"');
+    lines.push('- "Enhancers" → "Boosters", "Improvers", "Restorers", "Activators"');
+    lines.push('- "2025" → "This Year", "Now", "Today", "Latest"');
+    lines.push('- "Struggling" → "Battling", "Fighting", "Dealing", "Coping"');
+    lines.push('- "Clinically" → "Scientifically", "Medically", "Research-proven", "Tested"');
+    lines.push('');
+    lines.push('APPROACH VARIATIONS:');
+    lines.push('Variant 1: Problem-focused with empathy');
+    lines.push('Variant 2: Scientific/authority-focused');
+    lines.push('Variant 3: Urgency/action-focused');
+    lines.push('');
+    lines.push('OUTPUT FORMAT (EXACT):');
+    lines.push('DETECTED SITE TYPE: [Site Type]');
+    lines.push('VARIANT 1: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 2: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('VARIANT 3: [Approach Name] Headlines: [H1] | [H2] | [H3] Descriptions: [D1] | [D2] Paths: [Path1] / [Path2]');
+    lines.push('');
+    lines.push('INPUT DATA:');
+    lines.push(`DESTINATION URL: ${finalUrl || ''}`);
+    lines.push(`TARGET KEYWORDS: ${(targetKeywords || []).join(', ')}`);
+    lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
+    lines.push('');
+    lines.push('REMEMBER: Generate content that is 100% different from the forbidden content above.');
+    
+    return lines.join('\n');
+  }
+
   enforceVariety(variants) {
     if (!variants || variants.length < 3) return variants;
     
@@ -399,11 +545,12 @@ export class AdGenerationService {
     for (let i = 0; i < modifiedVariants.length; i++) {
       const variant = modifiedVariants[i];
       
-      // Modify headlines
+      // Modify headlines - force different words for each variant
       variant.headlines = variant.headlines.map(headline => {
         let modified = headline.toLowerCase();
         for (const [word, alternatives] of Object.entries(wordReplacements)) {
-          if (modified.includes(word) && wordCounts[word] > 1) {
+          if (modified.includes(word)) {
+            // Always use different alternative for each variant
             const replacement = alternatives[i % alternatives.length];
             modified = modified.replace(new RegExp(word, 'g'), replacement);
           }
@@ -411,11 +558,12 @@ export class AdGenerationService {
         return modified.charAt(0).toUpperCase() + modified.slice(1);
       });
       
-      // Modify descriptions
+      // Modify descriptions - force different words for each variant
       variant.descriptions = variant.descriptions.map(description => {
         let modified = description.toLowerCase();
         for (const [word, alternatives] of Object.entries(wordReplacements)) {
-          if (modified.includes(word) && wordCounts[word] > 1) {
+          if (modified.includes(word)) {
+            // Always use different alternative for each variant
             const replacement = alternatives[i % alternatives.length];
             modified = modified.replace(new RegExp(word, 'g'), replacement);
           }
@@ -424,8 +572,106 @@ export class AdGenerationService {
       });
     }
     
+    // Final check: ensure no duplicates remain
+    const finalVariants = this.ensureNoDuplicates(modifiedVariants);
+    
     console.log('Applied variety enforcement to variants');
-    return modifiedVariants;
+    return finalVariants;
+  }
+
+  ensureNoDuplicates(variants) {
+    if (!variants || variants.length < 3) return variants;
+    
+    const finalVariants = [...variants];
+    const usedHeadlines = new Set();
+    const usedDescriptions = new Set();
+    
+    // Headline alternatives for common patterns
+    const headlineAlternatives = {
+      'success rate': ['success rate', 'effectiveness rate', 'improvement rate', 'positive results'],
+      'proven': ['proven', 'tested', 'verified', 'confirmed'],
+      'today': ['today', 'now', 'immediately', 'instantly'],
+      'rediscover': ['rediscover', 'restore', 'revive', 'renew'],
+      'passion': ['passion', 'desire', 'intimacy', 'connection']
+    };
+    
+    // Description alternatives
+    const descriptionAlternatives = {
+      'success rate': ['success rate', 'effectiveness rate', 'improvement rate', 'positive results'],
+      'proven': ['proven', 'tested', 'verified', 'confirmed'],
+      'today': ['today', 'now', 'immediately', 'instantly']
+    };
+    
+    for (let i = 0; i < finalVariants.length; i++) {
+      const variant = finalVariants[i];
+      
+      // Fix duplicate headlines
+      for (let j = 0; j < variant.headlines.length; j++) {
+        let headline = variant.headlines[j];
+        let counter = 1;
+        
+        while (usedHeadlines.has(headline.toLowerCase().trim())) {
+          // Try to make it unique by adding/modifying words
+          const lowerHeadline = headline.toLowerCase();
+          let modified = headline;
+          
+          // Try different alternatives
+          for (const [pattern, alternatives] of Object.entries(headlineAlternatives)) {
+            if (lowerHeadline.includes(pattern)) {
+              const altIndex = counter % alternatives.length;
+              modified = headline.replace(new RegExp(pattern, 'gi'), alternatives[altIndex]);
+              break;
+            }
+          }
+          
+          // If still duplicate, add a number or modify
+          if (usedHeadlines.has(modified.toLowerCase().trim())) {
+            modified = headline + ` ${counter}`;
+          }
+          
+          headline = modified;
+          counter++;
+        }
+        
+        variant.headlines[j] = headline;
+        usedHeadlines.add(headline.toLowerCase().trim());
+      }
+      
+      // Fix duplicate descriptions
+      for (let j = 0; j < variant.descriptions.length; j++) {
+        let description = variant.descriptions[j];
+        let counter = 1;
+        
+        while (usedDescriptions.has(description.toLowerCase().trim())) {
+          // Try to make it unique by adding/modifying words
+          const lowerDescription = description.toLowerCase();
+          let modified = description;
+          
+          // Try different alternatives
+          for (const [pattern, alternatives] of Object.entries(descriptionAlternatives)) {
+            if (lowerDescription.includes(pattern)) {
+              const altIndex = counter % alternatives.length;
+              modified = description.replace(new RegExp(pattern, 'gi'), alternatives[altIndex]);
+              break;
+            }
+          }
+          
+          // If still duplicate, add a number or modify
+          if (usedDescriptions.has(modified.toLowerCase().trim())) {
+            modified = description + ` ${counter}`;
+          }
+          
+          description = modified;
+          counter++;
+        }
+        
+        variant.descriptions[j] = description;
+        usedDescriptions.add(description.toLowerCase().trim());
+      }
+    }
+    
+    console.log('Ensured no duplicate headlines or descriptions');
+    return finalVariants;
   }
 
   parseClaudeResponse(content) {

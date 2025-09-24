@@ -95,18 +95,21 @@ export class UploadService {
     const accessToken = await this.getAccessToken();
 
     const cust = String(customerId);
-    const agId = String(adGroupId).replace(/-/g, '');
+    
+    // Find an Ad Group with capacity (max 3 RSAs per group)
+    const targetAdGroupId = await this.findAdGroupWithCapacity(cust, accessToken, campaignId, adGroupId);
 
     const toH = (arr) => arr.filter(Boolean).slice(0, 15).map(t => ({ text: String(t).slice(0, 30) }));
     const toD = (arr) => arr.filter(Boolean).slice(0, 4).map(t => ({ text: String(t).slice(0, 90) }));
 
+    const newAdStatus = (process.env.GOOGLE_ADS_NEW_AD_STATUS || 'PAUSED').toUpperCase();
     const body = {
       mutateOperations: [
         {
           adGroupAdOperation: {
             create: {
-              adGroup: `customers/${cust}/adGroups/${agId}`,
-              status: 'ENABLED',
+              adGroup: `customers/${cust}/adGroups/${targetAdGroupId}`,
+              status: newAdStatus,
               ad: {
                 finalUrls: [finalUrl],
                 responsiveSearchAd: {
@@ -144,6 +147,72 @@ export class UploadService {
       const details = typeof data === 'object' ? JSON.stringify(data) : String(data || '');
       throw new Error(`Google Ads API ${status || ''} ${message || ''} ${details}`.trim());
     }
+  }
+
+  async findAdGroupWithCapacity(customerId, accessToken, campaignId, preferredAdGroupId) {
+    const { developerToken, loginCustomerId, apiVersion } = this.googleAdsCfg;
+    
+    // First, try the preferred Ad Group
+    const preferredId = String(preferredAdGroupId).replace(/-/g, '');
+    const preferredCapacity = await this.getAdGroupRSACount(customerId, accessToken, preferredId);
+    if (preferredCapacity < 3) {
+      return preferredId;
+    }
+    
+    // Search for other Ad Groups in the same campaign with capacity
+    const query = `
+      SELECT ad_group.id, ad_group.name, ad_group.status
+      FROM ad_group 
+      WHERE campaign.id = ${campaignId} 
+      AND ad_group.status = 'ENABLED'
+      AND ad_group.type = 'SEARCH_STANDARD'
+    `;
+    
+    const url = `https://googleads.googleapis.com/${apiVersion}/customers/${customerId}/googleAds:search`;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+      ...(loginCustomerId ? { 'login-customer-id': loginCustomerId } : {})
+    };
+    
+    const response = await axios.post(url, { query }, { headers });
+    const adGroups = response.data.results || [];
+    
+    // Check each Ad Group for capacity
+    for (const adGroup of adGroups) {
+      const agId = String(adGroup.adGroup.id);
+      const rsaCount = await this.getAdGroupRSACount(customerId, accessToken, agId);
+      if (rsaCount < 3) {
+        return agId;
+      }
+    }
+    
+    // If no capacity found, return the original (will fail with clear error)
+    return preferredId;
+  }
+
+  async getAdGroupRSACount(customerId, accessToken, adGroupId) {
+    const { developerToken, loginCustomerId, apiVersion } = this.googleAdsCfg;
+    
+    const query = `
+      SELECT ad_group_ad.ad.id
+      FROM ad_group_ad 
+      WHERE ad_group.id = ${adGroupId}
+      AND ad_group_ad.status = 'ENABLED'
+      AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+    `;
+    
+    const url = `https://googleads.googleapis.com/${apiVersion}/customers/${customerId}/googleAds:search`;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+      ...(loginCustomerId ? { 'login-customer-id': loginCustomerId } : {})
+    };
+    
+    const response = await axios.post(url, { query }, { headers });
+    return response.data.results ? response.data.results.length : 0;
   }
 }
 

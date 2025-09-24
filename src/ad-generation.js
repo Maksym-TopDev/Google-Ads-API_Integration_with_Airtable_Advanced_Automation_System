@@ -116,7 +116,7 @@ export class AdGenerationService {
       const response = await this.anthropic.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-latest',
         max_tokens: Math.min(Number(process.env.CLAUDE_MAX_TOKENS || 1200), 4000),
-        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.7),
+        temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.9),
         messages: [
           { role: 'user', content: prompt }
         ]
@@ -126,7 +126,10 @@ export class AdGenerationService {
         .map(p => (typeof p === 'string' ? p : (p.text || '')))
         .join('\n');
       try {
-        return this.parseClaudeResponse(content);
+        const variants = this.parseClaudeResponse(content);
+        // Enforce variety by checking for similarities
+        const uniqueVariants = this.enforceVariety(variants);
+        return uniqueVariants;
       } catch (parseErr) {
         const snippet = String(content).slice(0, 600);
         console.warn('Claude output (first 600 chars):\n' + snippet);
@@ -343,8 +346,86 @@ export class AdGenerationService {
     lines.push(`CAMPAIGN FOCUS: ${[campaignName, adGroupName].filter(Boolean).join(' - ')}`);
     lines.push('');
     lines.push('FINAL REMINDER: Each variant must be 100% unique. No similarities in words, structure, or approach allowed.');
+    lines.push('');
+    lines.push('RANDOMIZATION REQUIREMENT:');
+    lines.push(`Generate unique content for this specific request. Use different words, phrases, and approaches than any previous generation.`);
+    lines.push(`Request ID: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
     return lines.join('\n');
+  }
+
+  enforceVariety(variants) {
+    if (!variants || variants.length < 3) return variants;
+    
+    const modifiedVariants = [...variants];
+    
+    // Check for word repetition across variants
+    const allWords = new Set();
+    const wordCounts = {};
+    
+    for (let i = 0; i < modifiedVariants.length; i++) {
+      const variant = modifiedVariants[i];
+      const allText = [...variant.headlines, ...variant.descriptions].join(' ').toLowerCase();
+      const words = allText.split(/\s+/).filter(w => w.length > 3); // Only check words longer than 3 chars
+      
+      for (const word of words) {
+        if (wordCounts[word]) {
+          wordCounts[word]++;
+        } else {
+          wordCounts[word] = 1;
+        }
+      }
+    }
+    
+    // Replace repeated words with alternatives
+    const wordReplacements = {
+      'low': ['decreased', 'reduced', 'diminished', 'weakened'],
+      'sex': ['intimacy', 'passion', 'desire', 'libido'],
+      'drive': ['desire', 'passion', 'libido', 'intimacy'],
+      'natural': ['herbal', 'organic', 'plant-based', 'holistic'],
+      'help': ['solution', 'support', 'aid', 'assistance'],
+      'top': ['best', 'leading', 'proven', 'recommended'],
+      'enhancers': ['boosters', 'improvers', 'restorers', 'activators'],
+      'struggling': ['battling', 'fighting', 'dealing', 'coping'],
+      'clinically': ['scientifically', 'medically', 'research-proven', 'tested'],
+      'desire': ['passion', 'intimacy', 'libido', 'drive'],
+      'boost': ['enhance', 'improve', 'increase', 'restore'],
+      'guide': ['solution', 'method', 'approach', 'system'],
+      'women': ['female', 'ladies', 'her', 'she'],
+      'health': ['wellness', 'vitality', 'wellbeing', 'fitness']
+    };
+    
+    // Apply replacements to reduce repetition
+    for (let i = 0; i < modifiedVariants.length; i++) {
+      const variant = modifiedVariants[i];
+      
+      // Modify headlines
+      variant.headlines = variant.headlines.map(headline => {
+        let modified = headline.toLowerCase();
+        for (const [word, alternatives] of Object.entries(wordReplacements)) {
+          if (modified.includes(word) && wordCounts[word] > 1) {
+            const replacement = alternatives[i % alternatives.length];
+            modified = modified.replace(new RegExp(word, 'g'), replacement);
+          }
+        }
+        return modified.charAt(0).toUpperCase() + modified.slice(1);
+      });
+      
+      // Modify descriptions
+      variant.descriptions = variant.descriptions.map(description => {
+        let modified = description.toLowerCase();
+        for (const [word, alternatives] of Object.entries(wordReplacements)) {
+          if (modified.includes(word) && wordCounts[word] > 1) {
+            const replacement = alternatives[i % alternatives.length];
+            modified = modified.replace(new RegExp(word, 'g'), replacement);
+          }
+        }
+        return modified.charAt(0).toUpperCase() + modified.slice(1);
+      });
+    }
+    
+    console.log('Applied variety enforcement to variants');
+    return modifiedVariants;
   }
 
   parseClaudeResponse(content) {

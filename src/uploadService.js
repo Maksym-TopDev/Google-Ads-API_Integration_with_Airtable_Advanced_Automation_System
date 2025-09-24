@@ -49,7 +49,7 @@ export class UploadService {
       id: uploadQueueRecordId,
       fields: {
         'Status': 'Uploaded',
-        'Uploaded At': new Date().toISOString(),
+        'Updated At': new Date().toISOString(),
         'Google Ads Ad ID': googleAdsAdId
       }
     }]);

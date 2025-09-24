@@ -1,10 +1,10 @@
 import { AirtableClient } from './airtableClient.js';
-import { GoogleAdsApi } from 'google-ads-api';
+import axios from 'axios';
 
 export class UploadService {
   constructor() {
     this.airtable = new AirtableClient();
-    this.googleAds = this.createGoogleAdsClient();
+    this.googleAdsCfg = this.readGoogleAdsEnv();
   }
 
   async uploadAdFromQueueItem({
@@ -33,8 +33,8 @@ export class UploadService {
       throw new Error('Invalid ad copy: missing headlines or descriptions');
     }
 
-    // Create/update RSA in Google Ads
-    const googleAdsAdId = await this.createResponsiveSearchAd({
+    // Create/update RSA in Google Ads via REST (avoid gRPC issues on Vercel)
+    const googleAdsAdId = await this.createResponsiveSearchAdRest({
       campaignId,
       adGroupId,
       headlines: headlineList,
@@ -57,60 +57,86 @@ export class UploadService {
     return { googleAdsAdId };
   }
 
-  createGoogleAdsClient() {
-    const clientId = process.env.GOOGLE_ADS_OAUTH_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_ADS_OAUTH_CLIENT_SECRET;
-    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
-    const refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN;
-    const loginCustomerId = process.env.GOOGLE_ADS_MCC_ID; // manager account (no hyphens)
-    if (!clientId || !clientSecret || !developerToken || !refreshToken) {
-      console.warn('Google Ads credentials missing; uploads will fail.');
+  readGoogleAdsEnv() {
+    const cfg = {
+      clientId: process.env.GOOGLE_ADS_OAUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_ADS_OAUTH_CLIENT_SECRET,
+      developerToken: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+      refreshToken: process.env.GOOGLE_ADS_REFRESH_TOKEN,
+      loginCustomerId: (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '').replace(/-/g, ''),
+      customerId: (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/-/g, ''),
+      apiVersion: process.env.GOOGLE_ADS_API_VERSION || 'v18'
+    };
+    const missing = Object.entries(cfg)
+      .filter(([k, v]) => !v && !['loginCustomerId'].includes(k))
+      .map(([k]) => k);
+    if (missing.length) {
+      console.warn(`Missing Google Ads env: ${missing.join(', ')}`);
     }
-    return new GoogleAdsApi({
-      client_id: clientId,
-      client_secret: clientSecret,
-      developer_token: developerToken,
-    }).Customer({
-      customer_account_id: process.env.GOOGLE_ADS_CUSTOMER_ID, // target account (no hyphens)
-      login_customer_id: loginCustomerId,
-      refresh_token: refreshToken,
-    });
+    return cfg;
   }
 
-  async createResponsiveSearchAd({ campaignId, adGroupId, headlines, descriptions, path1, path2, finalUrl }) {
-    // Build RSA asset arrays (textRules per Google Ads: max 30 for headlines; 90 for descriptions)
-    const toAssets = (arr) => arr.filter(Boolean).map(t => ({ text_asset: { text: String(t).slice(0, 90) } }));
-    const headlineAssets = toAssets(headlines).slice(0, 15); // API allows up to 15
-    const descriptionAssets = toAssets(descriptions).slice(0, 4); // API allows up to 4
+  async getAccessToken() {
+    const { clientId, clientSecret, refreshToken } = this.googleAdsCfg;
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    });
+    const res = await axios.post('https://oauth2.googleapis.com/token', params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    return res.data.access_token;
+  }
 
-    // Resource names must be plain IDs (no hyphens). If your Airtable stores with hyphens, strip them.
+  async createResponsiveSearchAdRest({ campaignId, adGroupId, headlines, descriptions, path1, path2, finalUrl }) {
+    const { developerToken, loginCustomerId, customerId, apiVersion } = this.googleAdsCfg;
+    const accessToken = await this.getAccessToken();
+
+    const cust = String(customerId);
     const agId = String(adGroupId).replace(/-/g, '');
 
-    const operations = [
-      {
-        create: {
-          ad_group: `customers/${this.googleAds.customer_id}/adGroups/${agId}`,
-          status: 'ENABLED',
-          ad: {
-            final_urls: [finalUrl],
-            responsive_search_ad: {
-              headlines: headlineAssets.map(a => ({ text: a.text_asset.text.slice(0, 30) })),
-              descriptions: descriptionAssets.map(a => ({ text: a.text_asset.text.slice(0, 90) })),
-              path1: (path1 || '').slice(0, 15),
-              path2: (path2 || '').slice(0, 15)
+    const toH = (arr) => arr.filter(Boolean).slice(0, 15).map(t => ({ text: String(t).slice(0, 30) }));
+    const toD = (arr) => arr.filter(Boolean).slice(0, 4).map(t => ({ text: String(t).slice(0, 90) }));
+
+    const body = {
+      mutateOperations: [
+        {
+          adGroupAdOperation: {
+            create: {
+              adGroup: `customers/${cust}/adGroups/${agId}`,
+              status: 'ENABLED',
+              ad: {
+                finalUrls: [finalUrl],
+                responsiveSearchAd: {
+                  headlines: toH(headlines),
+                  descriptions: toD(descriptions),
+                  ...(path1 ? { path1: String(path1).slice(0, 15) } : {}),
+                  ...(path2 ? { path2: String(path2).slice(0, 15) } : {})
+                }
+              }
             }
           }
         }
-      }
-    ];
+      ],
+      responseContentType: 'RESOURCE_NAME'
+    };
 
-    const service = this.googleAds.adGroupAds;
-    const response = await service.create(operations);
-    // response returns resource_names like customers/xxx/adGroupAds/yyy
-    const resourceName = response?.results?.[0]?.resource_name || '';
-    const idMatch = resourceName.match(/adGroupAds\/(\d+)/);
-    const adId = idMatch ? idMatch[1] : resourceName;
-    return adId;
+    const url = `https://googleads.googleapis.com/${apiVersion}/customers/${cust}/googleAds:mutate`;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+      ...(loginCustomerId ? { 'login-customer-id': loginCustomerId } : {})
+    };
+
+    const res = await axios.post(url, body, { headers });
+    const resourceName = res?.data?.mutateOperationResponses?.[0]?.adGroupAdResult?.resourceName
+      || res?.data?.results?.[0]?.resourceName
+      || '';
+    const idMatch = String(resourceName).match(/adGroupAds\/(\d+)/);
+    return idMatch ? idMatch[1] : resourceName;
   }
 }
 
